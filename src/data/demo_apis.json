@@ -1,0 +1,52 @@
+[
+  {
+    "slug": "openai-platform",
+    "name": "OpenAI Platform",
+    "providerId": "prov-openai",
+    "category": "AI & Machine Learning",
+    "docsUrl": "https://platform.openai.com/docs",
+    "pricingUrl": "https://platform.openai.com/pricing",
+    "freeTier": "$5 free credit for new accounts",
+    "tags": ["llm", "chat", "embeddings"]
+  },
+  {
+    "slug": "google-maps-platform",
+    "name": "Google Maps Platform",
+    "providerId": "prov-google",
+    "category": "Maps & Geolocation",
+    "docsUrl": "https://developers.google.com/maps",
+    "pricingUrl": "https://mapsplatform.google.com/pricing/",
+    "freeTier": "$200 monthly credit",
+    "tags": ["maps", "geocoding", "places"]
+  },
+  {
+    "slug": "stripe-payments",
+    "name": "Stripe Payments",
+    "providerId": "prov-stripe",
+    "category": "Payments & Finance",
+    "docsUrl": "https://stripe.com/docs/api",
+    "pricingUrl": "https://stripe.com/pricing",
+    "freeTier": "No monthly fee; pay per transaction",
+    "tags": ["payments", "billing", "checkout"]
+  },
+  {
+    "slug": "twilio-programmable-sms",
+    "name": "Twilio Programmable SMS",
+    "providerId": "prov-twilio",
+    "category": "Communication & Messaging",
+    "docsUrl": "https://www.twilio.com/docs/sms",
+    "pricingUrl": "https://www.twilio.com/sms/pricing",
+    "freeTier": "$15 trial credit",
+    "tags": ["sms", "messaging"]
+  },
+  {
+    "slug": "mapbox-tiles-api",
+    "name": "Mapbox Tiles API",
+    "providerId": "prov-mapbox",
+    "category": "Maps & Geolocation",
+    "docsUrl": "https://docs.mapbox.com/api/maps/",
+    "pricingUrl": "https://www.mapbox.com/pricing",
+    "freeTier": "50,000 map loads / month",
+    "tags": ["tiles", "routing"]
+  }
+]

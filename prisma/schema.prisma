@@ -1,0 +1,313 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+
+enum ApiStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  BROKEN
+}
+
+enum ApiSource {
+  MANUAL
+  CRAWLED
+  PROVIDER
+}
+
+model User {
+  id                String          @id @default(cuid())
+  email             String          @unique
+  password          String?
+  name              String?
+  nickname          String?
+  role              UserRole        @default(USER)
+  stripeCustomerId  String?
+  emailVerified     DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  lastLoginAt       DateTime?
+  reviews           Review[]
+  favorites         Favorite[]
+  apiFollowers      ApiFollower[]
+  subscriptions     Subscription[]
+  pricingChangeLogs PricingHistory[] @relation("PricingHistoryChangedBy")
+  notificationPrefs NotificationPreference?
+  accounts          Account[]
+  sessions          Session[]
+}
+
+model Provider {
+  id        String   @id @default(cuid())
+  name      String
+  localName String?
+  website   String?
+  logoUrl   String?
+  contact   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  apis      Api[]
+}
+
+model Api {
+  id              String          @id @default(cuid())
+  slug            String          @unique
+  name            String
+  providerId      String
+  category        String
+  tags            String[]        @default([])
+  description     String?
+  docsUrl         String
+  registrationUrl String?
+  pricingUrl      String?
+  changelogUrl    String?
+  sourceUrl       String?
+  logoUrl         String?
+  freeTier        String?
+  pricingPlan     String?
+  pricingModel    String?
+  supportedRegions String?
+  supportChannels String?
+  status          ApiStatus       @default(ACTIVE)
+  source          ApiSource       @default(MANUAL)
+  verified        Boolean         @default(true)
+  featured        Boolean         @default(false)
+  lastCheckedAt   DateTime        @default(now())
+  lastHash        String?
+  responseTimeMs  Int?
+  metadata        Json?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  provider        Provider        @relation(fields: [providerId], references: [id])
+  reviews         Review[]
+  pricingHistory  PricingHistory[]
+  followers       ApiFollower[]
+  favorites       Favorite[]
+
+  @@index([category])
+  @@index([status])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  apiId      String
+  userId     String?
+  nickname   String
+  rating     Int
+  comment    String?
+  ipHash     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  api        Api      @relation(fields: [apiId], references: [id])
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([apiId])
+}
+
+model PricingHistory {
+  id            String   @id @default(cuid())
+  apiId         String
+  previousHash  String?
+  newHash       String?
+  snapshot      Json?
+  diff          Json?
+  changedById   String?
+  changedSource ApiSource @default(CRAWLED)
+  createdAt     DateTime @default(now())
+  api           Api      @relation(fields: [apiId], references: [id])
+  changedBy     User?    @relation("PricingHistoryChangedBy", fields: [changedById], references: [id])
+
+  @@index([apiId])
+  @@index([createdAt])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  apiId     String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  api       Api      @relation(fields: [apiId], references: [id])
+
+  @@unique([userId, apiId])
+}
+
+model ApiFollower {
+  id         String   @id @default(cuid())
+  userId     String
+  apiId      String
+  createdAt  DateTime @default(now())
+  notificationMethod String @default("email")
+  user       User     @relation(fields: [userId], references: [id])
+  api        Api      @relation(fields: [apiId], references: [id])
+
+  @@unique([userId, apiId])
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  type              String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  id          String   @id @default(cuid())
+  identifier  String
+  token       String   @unique
+  type        String   @default("email_verification")
+  expires     DateTime
+  createdAt   DateTime @default(now())
+
+  @@unique([identifier, token])
+  @@index([identifier])
+  @@index([expires])
+}
+
+model SubscriptionPlan {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  priceUsd    Float
+  billingCycle String  // monthly, yearly
+  benefits    String[]
+  stripePriceId String? @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  userId               String
+  planId               String
+  status               String
+  stripeSubscriptionId String?
+  stripeCustomerId     String?
+  startsAt             DateTime
+  endsAt               DateTime?
+  cancelAt             DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  user                 User     @relation(fields: [userId], references: [id])
+  plan                 SubscriptionPlan @relation(fields: [planId], references: [id])
+  payments             Payment[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  subscriptionId  String
+  amountUsd       Float
+  currency        String   @default("USD")
+  status          String
+  stripePaymentIntentId String?
+  paidAt          DateTime?
+  createdAt       DateTime @default(now())
+  subscription    Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([subscriptionId])
+}
+
+model NotificationPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  reviewEmails    Boolean  @default(true)
+  apiUpdateEmails Boolean  @default(true)
+  newsletterEmails Boolean @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id])
+}
+
+model AdSlot {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  description String?
+  width       Int?
+  height      Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  campaigns   AdCampaign[]
+}
+
+model AdCampaign {
+  id          String   @id @default(cuid())
+  slotId      String
+  name        String
+  imageUrl    String
+  targetUrl   String
+  startsAt    DateTime
+  endsAt      DateTime
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  slot        AdSlot   @relation(fields: [slotId], references: [id])
+
+  @@index([slotId])
+}
+
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  externalId  String   @unique
+  provider    String
+  payload     Json
+  status      String   @default("received")
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([provider, status])
+}
+
+model GlobalSettings {
+  id           String   @id @default(cuid())
+  theme        String   @default("default")
+  primaryColor String   @default("#3b82f6")
+  backgroundColor String @default("#0d1117")
+  surfaceColor String   @default("#161b22")
+  textColor    String   @default("#f3f4f6")
+  fontFamily   String   @default("Inter")
+  borderRadius String   @default("0.5rem")
+  updatedAt    DateTime @updatedAt
+}

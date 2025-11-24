@@ -1,0 +1,9 @@
+{
+  "id": "api_example_001",
+  "name": "Example API",
+  "category": "AI",
+  "description": "Short description",
+  "endpoint": "https://api.example.com/v1",
+  "auth": "API Key",
+  "pricing": { "free_tier": "Yes" }
+}
