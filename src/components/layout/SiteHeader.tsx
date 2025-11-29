@@ -3,6 +3,8 @@ import { useRouter } from 'next/router';
 import { useState } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 
+import DonationButton from '../donation/DonationButton';
+
 const navItems = [
   { href: '/category/AI%20%26%20Machine%20Learning', label: 'AI APIs' },
   { href: '/category/Payments%20%26%20Finance', label: 'Payments' },
@@ -47,7 +49,10 @@ export default function SiteHeader() {
           ))}
         </nav>
 
+
+
         <div className="hidden items-center space-x-2 md:flex">
+          <DonationButton />
           <form onSubmit={handleSubmit} className="relative">
             <input
               type="search"

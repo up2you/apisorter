@@ -15,6 +15,7 @@ interface ApisPageProps {
     sort: string;
     order: 'asc' | 'desc';
     filterCategory: string;
+    filterStatus: string;
     pagination: {
         page: number;
         totalPages: number;
@@ -22,7 +23,7 @@ interface ApisPageProps {
     };
 }
 
-export default function AdminApis({ apis, categories, sort, order, filterCategory, pagination }: ApisPageProps) {
+export default function AdminApis({ apis, categories, sort, order, filterCategory, filterStatus, pagination }: ApisPageProps) {
     const router = useRouter();
 
     const handleDelete = async (item: ApiWithProvider) => {
@@ -55,13 +56,14 @@ export default function AdminApis({ apis, categories, sort, order, filterCategor
         updateQueryParams({ sort: newSort, order: newOrder, page: 1 });
     };
 
-    const handleFilterChange = (category: string) => {
+    const handleFilterChange = (category: string, status: string) => {
         const query: any = { ...router.query, page: 1 }; // Reset to page 1 on filter
-        if (category) {
-            query.category = category;
-        } else {
-            delete query.category;
-        }
+        if (category) query.category = category;
+        else delete query.category;
+
+        if (status) query.status = status;
+        else delete query.status;
+
         router.push({ pathname: router.pathname, query });
     };
 
@@ -96,13 +98,28 @@ export default function AdminApis({ apis, categories, sort, order, filterCategor
                         <span className="text-sm text-gray-400">Filter by Category:</span>
                         <select
                             value={filterCategory}
-                            onChange={(e) => handleFilterChange(e.target.value)}
+                            onChange={(e) => handleFilterChange(e.target.value, filterStatus)}
                             className="bg-surface border border-gray-700 rounded px-3 py-1 text-sm focus:outline-none focus:border-primary max-w-[200px]"
                         >
                             <option value="">All Categories</option>
                             {categories.map((cat) => (
                                 <option key={cat} value={cat}>{cat}</option>
                             ))}
+                        </select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-400">Filter by Status:</span>
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => handleFilterChange(filterCategory, e.target.value)}
+                            className="bg-surface border border-gray-700 rounded px-3 py-1 text-sm focus:outline-none focus:border-primary"
+                        >
+                            <option value="">All Statuses</option>
+                            <option value="ACTIVE">Active</option>
+                            <option value="PENDING">Pending</option>
+                            <option value="BROKEN">Broken</option>
+                            <option value="INACTIVE">Inactive</option>
                         </select>
                     </div>
                 </div>
@@ -205,12 +222,16 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const sort = (context.query.sort as string) || 'createdAt';
     const order = (context.query.order as 'asc' | 'desc') || 'desc';
     const filterCategory = (context.query.category as string) || '';
+    const filterStatus = (context.query.status as string) || '';
     const page = parseInt(context.query.page as string) || 1;
     const pageSize = 50;
 
     const where: any = {};
     if (filterCategory) {
         where.category = filterCategory;
+    }
+    if (filterStatus) {
+        where.status = filterStatus;
     }
 
     const orderBy = {
@@ -243,6 +264,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             sort,
             order,
             filterCategory,
+            filterStatus,
             pagination: {
                 page,
                 totalPages: Math.ceil(totalCount / pageSize),

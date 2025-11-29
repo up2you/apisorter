@@ -5,6 +5,7 @@ interface ApiCardProps {
   name: string;
   category: string;
   tags: string[];
+  description?: string | null;
   providerName?: string | null;
   providerLogo?: string | null;
   apiLogo?: string | null;
@@ -18,6 +19,7 @@ export default function ApiCard({
   name,
   category,
   tags,
+  description,
   providerName,
   providerLogo,
   apiLogo,
@@ -33,96 +35,84 @@ export default function ApiCard({
         {/* Top Decoration Bar */}
         <div className="h-1 w-full bg-gradient-to-r from-accent via-highlight to-accent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-        <div className="flex flex-1 flex-col gap-3 p-5">
-          {/* Provider Info */}
-          {displayLogo && (
-            <div className="flex items-center gap-2.5">
-              <div className="relative h-8 w-8 overflow-hidden rounded-lg bg-white/5">
+        <div className="flex flex-1 flex-col gap-4 p-5">
+          {/* Header: Logo & Title */}
+          <div className="flex items-start gap-4">
+            {displayLogo && (
+              <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-white/5 border border-white/10">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={displayLogo} alt={name || 'API Logo'} className="h-full w-full object-cover" />
               </div>
-              {providerName && (
-                <span className="text-xs font-medium text-gray-400 truncate">{providerName}</span>
-              )}
-            </div>
-          )}
-
-          {/* Title and Category */}
-          <div>
-            <h3 className="text-base font-bold text-white group-hover:text-accent transition-colors duration-200 line-clamp-1">
-              {name}
-            </h3>
-            <div className="mt-1.5 inline-block">
-              <span className="badge badge-secondary text-[10px] px-2 py-0.5">
-                {category}
-              </span>
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="badge badge-secondary text-[10px] px-2 py-0.5">
+                  {category}
+                </span>
+                {providerName && (
+                  <span className="text-xs text-gray-500 truncate max-w-[120px]">{providerName}</span>
+                )}
+              </div>
+              <h3 className="text-lg font-bold text-white group-hover:text-accent transition-colors duration-200 line-clamp-1">
+                {name}
+              </h3>
             </div>
           </div>
 
+          {/* Description */}
+          {description && (
+            <p className="text-sm text-gray-400 line-clamp-2 leading-relaxed h-[2.5rem]">
+              {description}
+            </p>
+          )}
+
           {/* Tags */}
           {tags && tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2 mt-auto">
               {tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag}
-                  className="inline-block rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent"
+                  className="inline-block rounded-md bg-accent/5 px-2 py-1 text-[11px] font-medium text-accent/80 border border-accent/10"
                 >
                   {tag}
                 </span>
               ))}
               {tags.length > 3 && (
-                <span className="inline-block rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-gray-400">
+                <span className="inline-block rounded-md bg-white/5 px-2 py-1 text-[11px] font-medium text-gray-500 border border-white/10">
                   +{tags.length - 3}
                 </span>
               )}
             </div>
           )}
-
-          {/* Free Tier Info */}
-          {freeTier && (
-            <div className="mt-auto flex items-center gap-1.5 rounded-lg bg-green-500/10 px-2.5 py-1.5">
-              <span className="text-[10px] font-semibold text-green-400">✓ Free tier</span>
-              <span className="text-[10px] text-green-300 truncate">{freeTier}</span>
-            </div>
-          )}
         </div>
 
-        {/* Bottom Rating and Reviews */}
-        <div className="border-t border-white/5 px-5 py-3">
+        {/* Footer: Stats & Free Tier */}
+        <div className="border-t border-white/5 bg-white/[0.02] px-5 py-3 mt-auto">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              {rating > 0 ? (
-                <>
-                  <span className="text-xs font-semibold text-white">{rating.toFixed(1)}</span>
-                  <div className="flex items-center gap-0.5">
-                    {[...Array(5)].map((_, i) => (
-                      <span
-                        key={i}
-                        className={`text-[10px] ${i < Math.round(rating)
-                          ? 'text-highlight'
-                          : 'text-gray-600'
-                          }`}
-                      >
-                        ★
-                      </span>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <span className="text-[10px] text-gray-500">No ratings yet</span>
-              )}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-yellow-400 text-xs">★</span>
+                <span className="text-xs font-medium text-gray-300">
+                  {rating > 0 ? rating.toFixed(1) : 'New'}
+                </span>
+                {reviewCount > 0 && (
+                  <span className="text-[10px] text-gray-500">({reviewCount})</span>
+                )}
+              </div>
             </div>
-            {reviewCount > 0 && (
-              <span className="text-[10px] text-gray-400">
-                {reviewCount} {reviewCount === 1 ? 'review' : 'reviews'}
-              </span>
+
+            {freeTier ? (
+              <div className="flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500"></span>
+                <span className="text-[11px] font-medium text-green-400/90">Free Tier</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 opacity-50">
+                <span className="h-1.5 w-1.5 rounded-full bg-gray-600"></span>
+                <span className="text-[11px] font-medium text-gray-500">Paid</span>
+              </div>
             )}
           </div>
-        </div>
-
-        {/* Hover Arrow Indicator */}
-        <div className="absolute bottom-3 right-3 flex h-6 w-6 items-center justify-center rounded-full bg-accent/0 text-accent transition-all duration-300 group-hover:bg-accent/20">
-          <span className="text-sm opacity-0 transition-opacity duration-300 group-hover:opacity-100">→</span>
         </div>
       </article>
     </Link>

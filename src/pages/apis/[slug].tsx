@@ -13,6 +13,7 @@ import SiteFooter from '@/components/layout/SiteFooter';
 import SiteHeader from '@/components/layout/SiteHeader';
 import { getDatasetDetail, getDatasetRelated } from '@/lib/catalogData';
 import prisma from '@/lib/prisma';
+import ClaimButton from '@/components/provider/ClaimButton';
 
 type ApiDetailProps = {
   api: {
@@ -100,7 +101,16 @@ export default function ApiDetailPage({ api, related, initialReviews, initialAve
               </div>
               <div>
                 <h1 className="text-3xl font-semibold text-white">{api.name}</h1>
-                <p className="text-sm text-gray-400">{api.provider?.name ?? 'Independent provider'}</p>
+                <div className="flex items-center gap-3">
+                  <p className="text-sm text-gray-400">{api.provider?.name ?? 'Independent provider'}</p>
+                  {api.provider && process.env.NEXT_PUBLIC_ENABLE_CLAIMING === 'true' && (
+                    <ClaimButton
+                      providerId={api.provider.id}
+                      providerName={api.provider.name || ''}
+                      claimStatus={api.provider.claimStatus || 'UNCLAIMED'}
+                    />
+                  )}
+                </div>
               </div>
             </div>
             {api.description && <p className="mt-6 max-w-3xl text-sm text-gray-300">{api.description}</p>}
@@ -266,7 +276,7 @@ export const getServerSideProps: GetServerSideProps<ApiDetailProps> = async (con
     where: { OR: [{ slug }, { id: slug }] },
     include: {
       provider: {
-        select: { name: true, website: true, logoUrl: true },
+        select: { id: true, name: true, website: true, logoUrl: true, claimStatus: true },
       },
       pricingHistory: {
         select: { id: true, createdAt: true, newHash: true, diff: true },
@@ -351,7 +361,7 @@ export const getServerSideProps: GetServerSideProps<ApiDetailProps> = async (con
       take: 6,
       include: {
         provider: {
-          select: { name: true, logoUrl: true },
+          select: { name: true, logoUrl: true, id: true, claimStatus: true }, // Added id and claimStatus
         },
       },
     }),

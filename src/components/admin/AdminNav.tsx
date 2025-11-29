@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { LayoutDashboard, Database, Server, Settings, Home } from 'lucide-react';
+import { LayoutDashboard, Database, Server, Settings, Home, ShieldCheck } from 'lucide-react';
 
 const navItems = [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/admin/providers', label: 'Providers', icon: Server },
     { href: '/admin/apis', label: 'APIs', icon: Database },
+    { href: '/admin/claims', label: 'Claims', icon: ShieldCheck },
     { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -28,8 +29,8 @@ export function AdminNav() {
                             key={item.href}
                             href={item.href}
                             className={`flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${isActive
-                                    ? 'bg-primary text-white'
-                                    : 'text-gray-400 hover:bg-surface-light hover:text-white'
+                                ? 'bg-primary text-white'
+                                : 'text-gray-400 hover:bg-surface-light hover:text-white'
                                 }`}
                         >
                             <Icon size={20} />

@@ -64,8 +64,8 @@ export default function AdminSettings({ initialSettings }: SettingsProps) {
                                     key={themeName}
                                     onClick={() => handleThemeChange(themeName)}
                                     className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${currentSettings.theme === themeName
-                                            ? 'border-primary bg-primary/10'
-                                            : 'border-gray-700 hover:border-gray-500'
+                                        ? 'border-primary bg-primary/10'
+                                        : 'border-gray-700 hover:border-gray-500'
                                         }`}
                                 >
                                     <div className="flex gap-1">
@@ -135,6 +135,34 @@ export default function AdminSettings({ initialSettings }: SettingsProps) {
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             const newSettings = { ...currentSettings, backgroundColor: val, theme: 'custom' };
+                                            setCurrentSettings(newSettings);
+                                            applyTheme(newSettings);
+                                        }}
+                                        className="flex-1 bg-midnight border border-gray-700 rounded px-3 text-white"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-1">Text Color</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="color"
+                                        value={currentSettings.textColor}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            const newSettings = { ...currentSettings, textColor: val, theme: 'custom' };
+                                            setCurrentSettings(newSettings);
+                                            applyTheme(newSettings);
+                                        }}
+                                        className="h-10 w-20 rounded bg-transparent border border-gray-700 cursor-pointer"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={currentSettings.textColor}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            const newSettings = { ...currentSettings, textColor: val, theme: 'custom' };
                                             setCurrentSettings(newSettings);
                                             applyTheme(newSettings);
                                         }}

@@ -6,6 +6,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 
 import ApiCard from '@/components/ApiCard';
+import SmartSearch from '@/components/home/SmartSearch';
 import AdSlot from '@/components/AdSlot';
 import SiteFooter from '@/components/layout/SiteFooter';
 import SiteHeader from '@/components/layout/SiteHeader';
@@ -58,8 +59,8 @@ export default function Home({ featured, catalog, categories, spotlightReviews }
           <div className="absolute right-0 top-0 -z-10 h-96 w-96 rounded-full bg-accent/10 blur-3xl" />
           <div className="absolute bottom-0 left-1/4 -z-10 h-80 w-80 rounded-full bg-highlight/5 blur-3xl" />
 
-          <div className="relative z-10 max-w-3xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 mb-6">
+          <div className="relative z-10 flex flex-col items-center text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 mb-8">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
@@ -67,24 +68,15 @@ export default function Home({ featured, catalog, categories, spotlightReviews }
               <span className="text-xs font-semibold text-accent">API CENTER 2.0</span>
             </div>
 
-            <h1 className="text-4xl font-extrabold leading-tight text-white md:text-5xl">
+            <h1 className="text-4xl font-extrabold leading-tight text-white md:text-[2.75rem] mb-6">
               Discover, compare & monitor the world's favorite APIs
             </h1>
 
-            <p className="mt-4 text-base text-gray-300 max-w-2xl mx-auto">
-              Built for developers who move fast. Filter by category, free tiers, and community insights. Stay notified when pricing or docs change.
-            </p>
-
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-              <Link href="/category/all" className="btn btn-primary">
-                Explore APIs
-              </Link>
-              <Link href="/pricing" className="btn btn-secondary">
-                View Pricing
-              </Link>
+            <div className="w-full mb-12">
+              <SmartSearch />
             </div>
 
-            <div className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-gray-400">
+            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-400">
               <div className="flex items-center gap-2">
                 <span className="text-accent">★</span>
                 <span>Anonymous reviews</span>
@@ -124,6 +116,7 @@ export default function Home({ featured, catalog, categories, spotlightReviews }
                 providerName={api.provider?.name}
                 providerLogo={api.provider?.logoUrl}
                 apiLogo={api.logoUrl}
+                description={api.description}
                 freeTier={api.freeTier}
                 rating={api.metrics.averageRating}
                 reviewCount={api.metrics.reviewCount}
@@ -288,6 +281,7 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
       averageRating: Number((averageMap[api.id]?.avg ?? 0).toFixed(2)),
       reviewCount: averageMap[api.id]?.count ?? 0,
     },
+    description: api.description,
     source: 'database' as const,
   }));
 

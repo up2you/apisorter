@@ -11,26 +11,52 @@ async function main() {
             logoUrl: null,
             status: 'ACTIVE',
         },
-        take: 100, // Can process more since we aren't crawling
+        include: {
+            provider: true,
+        },
+        take: 1000,
     });
 
     console.log(`Found ${apis.length} APIs to process.`);
 
     for (const api of apis) {
-        const targetUrl = api.docsUrl || api.sourceUrl;
-        if (!targetUrl) {
-            console.log(`Skipping ${api.name}: No URL found`);
-            continue;
+        let targetUrl = api.docsUrl || api.sourceUrl;
+        let usedProviderUrl = false;
+
+        // Check if API URL is valid
+        const isGoogleSearch = (url: string) => {
+            try {
+                const u = new URL(url);
+                return u.hostname.includes('google.com') && url.includes('/search');
+            } catch {
+                return false;
+            }
+        };
+
+        if (!targetUrl || isGoogleSearch(targetUrl)) {
+            // Try to use provider info
+            if (api.provider.logoUrl) {
+                console.log(`Using provider logo for ${api.name}: ${api.provider.logoUrl}`);
+                await prisma.api.update({
+                    where: { id: api.id },
+                    data: { logoUrl: api.provider.logoUrl },
+                });
+                continue;
+            }
+
+            if (api.provider.website && !isGoogleSearch(api.provider.website)) {
+                console.log(`Using provider website for ${api.name}: ${api.provider.website}`);
+                targetUrl = api.provider.website;
+                usedProviderUrl = true;
+            } else {
+                console.log(`Skipping ${api.name}: No valid URL found (API: ${targetUrl}, Provider: ${api.provider.website})`);
+                continue;
+            }
         }
 
         try {
             const urlObj = new URL(targetUrl);
             const hostname = urlObj.hostname;
-
-            if (hostname.includes('google.com') && targetUrl.includes('/search')) {
-                console.log(`Skipping ${api.name}: Google Search URL`);
-                continue;
-            }
 
             const logoUrl = `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`;
 
@@ -40,6 +66,14 @@ async function main() {
                 where: { id: api.id },
                 data: { logoUrl },
             });
+
+            // If we used the provider's website and the provider has no logo, update the provider too
+            if (usedProviderUrl && !api.provider.logoUrl) {
+                await prisma.provider.update({
+                    where: { id: api.provider.id },
+                    data: { logoUrl },
+                });
+            }
 
         } catch (error) {
             console.error(`Error processing ${api.name} (${targetUrl}):`, error);

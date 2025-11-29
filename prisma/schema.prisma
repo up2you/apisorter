@@ -58,6 +58,22 @@ model Provider {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   apis      Api[]
+
+  // Claiming fields
+  claimStatus     String    @default("UNCLAIMED") // UNCLAIMED, PENDING, APPROVED, REJECTED
+  claimEmail      String?
+  claimedByUserId String?
+  claimedAt       DateTime?
+}
+
+model Donation {
+  id                String   @id @default(cuid())
+  amount            Int      // Amount in cents
+  currency          String   @default("USD")
+  status            String   // pending, paid, failed
+  donorEmail        String?
+  lemonSqueezyOrderId String?
+  createdAt         DateTime @default(now())
 }
 
 model Api {
@@ -87,6 +103,7 @@ model Api {
   lastHash        String?
   responseTimeMs  Int?
   metadata        Json?
+  descriptionEmbedding Json?  // Stores vector embedding as array of numbers
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   provider        Provider        @relation(fields: [providerId], references: [id])
@@ -310,4 +327,45 @@ model GlobalSettings {
   fontFamily   String   @default("Inter")
   borderRadius String   @default("0.5rem")
   updatedAt    DateTime @updatedAt
+}
+
+enum DiscoveryType {
+  RSS
+  SITEMAP
+  HTML
+}
+
+enum DiscoveryStatus {
+  PENDING
+  PROCESSED
+  IGNORED
+  ERROR
+}
+
+model DiscoverySource {
+  id            String        @id @default(cuid())
+  name          String
+  url           String        @unique
+  type          DiscoveryType @default(RSS)
+  enabled       Boolean       @default(true)
+  lastCheckedAt DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  logs          DiscoveryLog[]
+}
+
+model DiscoveryLog {
+  id          String          @id @default(cuid())
+  sourceId    String
+  url         String
+  title       String?
+  status      DiscoveryStatus @default(PENDING)
+  foundApiId  String?
+  errorMessage String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  source      DiscoverySource @relation(fields: [sourceId], references: [id])
+  
+  @@unique([sourceId, url])
+  @@index([status])
 }

@@ -16,6 +16,7 @@ export type CatalogApi = {
     averageRating: number;
     reviewCount: number;
   };
+  description?: string | null;
   source: 'database' | 'dataset';
 };
 

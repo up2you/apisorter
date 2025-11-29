@@ -6,6 +6,7 @@ import Link from 'next/link';
 import ApiCard from '@/components/ApiCard';
 import AdSlot from '@/components/AdSlot';
 import CategoryBadge from '@/components/CategoryBadge';
+import Pagination from '@/components/Pagination';
 import SiteFooter from '@/components/layout/SiteFooter';
 import SiteHeader from '@/components/layout/SiteHeader';
 import { CATEGORY_NAMES } from '@/data/categories';
@@ -19,7 +20,14 @@ type CategoryPageProps = {
   freeOnly: boolean;
   apis: CatalogApi[];
   categories: Array<{ category: string; count: number }>;
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+  };
 };
+
+const ITEMS_PER_PAGE = 24;
 
 export default function CategoryPage({
   category,
@@ -27,6 +35,7 @@ export default function CategoryPage({
   freeOnly,
   apis,
   categories,
+  pagination,
 }: CategoryPageProps) {
   const title = category === 'all' ? 'All APIs' : `${category} APIs`;
 
@@ -120,10 +129,21 @@ export default function CategoryPage({
                   freeTier={api.freeTier}
                   rating={api.metrics.averageRating}
                   reviewCount={api.metrics.reviewCount}
+                  description={api.description}
                 />
               ))
             )}
           </div>
+
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            baseUrl={`/category/${category}`}
+            searchParams={{
+              q: searchTerm,
+              free: freeOnly ? '1' : undefined,
+            }}
+          />
         </section>
       </main>
       <SiteFooter />
@@ -136,6 +156,10 @@ export const getServerSideProps: GetServerSideProps<CategoryPageProps> = async (
   const category = typeof rawCategory === 'string' ? decodeURIComponent(rawCategory) : 'all';
   const searchTerm = typeof context.query.q === 'string' ? context.query.q.trim() : '';
   const freeOnly = typeof context.query.free !== 'undefined';
+
+  // Pagination
+  const page = Number(context.query.page) || 1;
+  const currentPage = Math.max(1, page);
 
   const filters: Prisma.ApiWhereInput = {
     status: ApiStatus.ACTIVE,
@@ -161,7 +185,14 @@ export const getServerSideProps: GetServerSideProps<CategoryPageProps> = async (
   const datasetCatalog = getDatasetCatalog();
   const datasetCategoryCounts = getDatasetCategoriesCounts();
 
-  const [apis, categoryEntries] = await Promise.all([
+  // Fetch more items than needed to handle potential duplicates, but we'll slice later
+  // Since we are merging DB and static data, we need to fetch all relevant DB items first (or a large enough subset)
+  // For simplicity and correctness with mixed data sources, we'll fetch a reasonable limit from DB
+  // and then merge, filter, and paginate in memory.
+  // Note: For very large datasets, this strategy should be optimized to paginate at the DB level + separate static data pagination.
+  // Given the current scale, in-memory pagination after fetching is acceptable.
+
+  const [dbApis, categoryEntries] = await Promise.all([
     prisma.api.findMany({
       where: filters,
       include: {
@@ -170,7 +201,7 @@ export const getServerSideProps: GetServerSideProps<CategoryPageProps> = async (
         },
       },
       orderBy: [{ featured: 'desc' }, { updatedAt: 'desc' }],
-      take: 60,
+      take: 1000, // Fetch up to 1000 to merge with static data
     }),
     prisma.api.findMany({
       where: { status: ApiStatus.ACTIVE, verified: true },
@@ -178,10 +209,10 @@ export const getServerSideProps: GetServerSideProps<CategoryPageProps> = async (
     }),
   ]);
 
-  const averages = apis.length
+  const averages = dbApis.length
     ? await prisma.review.groupBy({
       by: ['apiId'],
-      where: { apiId: { in: apis.map((api) => api.id) } },
+      where: { apiId: { in: dbApis.map((api) => api.id) } },
       _avg: { rating: true },
       _count: { rating: true },
     })
@@ -202,7 +233,7 @@ export const getServerSideProps: GetServerSideProps<CategoryPageProps> = async (
   }, {});
 
   const datasetMatches = filterDatasetCatalog({ category, searchTerm, freeOnly });
-  const dbCatalog = apis.map((api) => ({
+  const dbCatalog = dbApis.map((api) => ({
     id: api.id,
     slug: api.slug,
     name: api.name,
@@ -216,14 +247,23 @@ export const getServerSideProps: GetServerSideProps<CategoryPageProps> = async (
       reviewCount: metrics[api.id]?.count ?? 0,
     },
     docsUrl: api.docsUrl,
+    description: api.description,
     source: 'database' as const,
   }));
 
   const dbSlugs = new Set(dbCatalog.map((item) => item.slug));
+
+  // Merge DB and Dataset
   const combinedApis: CatalogApi[] = [
     ...dbCatalog,
     ...datasetMatches.filter((item) => !dbSlugs.has(item.slug)),
   ];
+
+  // Calculate pagination
+  const totalItems = combinedApis.length;
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedApis = combinedApis.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const combinedCategorySummary = Object.entries(datasetCategoryCounts).reduce<Record<string, number>>(
     (acc, [key, value]) => {
@@ -252,8 +292,13 @@ export const getServerSideProps: GetServerSideProps<CategoryPageProps> = async (
       category,
       searchTerm,
       freeOnly,
-      apis: combinedApis,
+      apis: paginatedApis,
       categories: [...predefinedCategories, ...additionalCategories],
+      pagination: {
+        currentPage,
+        totalPages,
+        totalItems,
+      },
     },
   };
 };

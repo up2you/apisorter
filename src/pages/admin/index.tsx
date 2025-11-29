@@ -56,27 +56,15 @@ export default function AdminDashboard({ counts }: DashboardProps) {
                         <Activity size={20} />
                         <span>Recent Activity</span>
                     </h2>
-                    <button
-                        disabled={loading}
-                        onClick={async () => {
-                            if (confirm('Start crawler? This may take a while.')) {
-                                setLoading(true);
-                                try {
-                                    const res = await fetch('/api/admin/crawler/run', { method: 'POST' });
-                                    if (!res.ok) throw new Error('Failed to start');
-                                    alert('Crawler started in background!');
-                                } catch (error) {
-                                    alert('Failed to start crawler');
-                                    console.error(error);
-                                } finally {
-                                    setLoading(false);
-                                }
-                            }
-                        }}
-                        className="px-4 py-2 bg-primary text-white rounded-md hover:bg-opacity-90 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    <a
+                        href="https://github.com/your-username/apisorter/actions"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors text-sm flex items-center gap-2"
                     >
-                        {loading ? 'Starting...' : 'Run Crawler Now'}
-                    </button>
+                        <span>View Crawler Status</span>
+                        <Activity size={16} />
+                    </a>
                 </div>
                 <div className="bg-surface rounded-lg border border-gray-800 p-8 text-center text-gray-500">
                     No recent activity to show.

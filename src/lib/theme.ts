@@ -44,6 +44,30 @@ export const themes: Record<string, ThemeConfig> = {
         fontFamily: 'Outfit',
         borderRadius: '1rem',
     },
+    morning: {
+        primaryColor: '#0ea5e9', // sky-500
+        backgroundColor: '#f0f9ff', // sky-50
+        surfaceColor: '#ffffff',
+        textColor: '#0c4a6e', // sky-900
+        fontFamily: 'Inter',
+        borderRadius: '0.5rem',
+    },
+    blossom: {
+        primaryColor: '#ec4899', // pink-500
+        backgroundColor: '#fdf2f8', // pink-50
+        surfaceColor: '#ffffff',
+        textColor: '#831843', // pink-900
+        fontFamily: 'Outfit',
+        borderRadius: '1rem',
+    },
+    mint: {
+        primaryColor: '#10b981', // emerald-500
+        backgroundColor: '#f0fdf4', // emerald-50
+        surfaceColor: '#ffffff',
+        textColor: '#064e3b', // emerald-900
+        fontFamily: 'Roboto',
+        borderRadius: '0.25rem',
+    },
 };
 
 export function applyTheme(config: ThemeConfig) {

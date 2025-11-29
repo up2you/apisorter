@@ -41,6 +41,7 @@ async function main() {
 
   } catch (error) {
     console.error('Crawler failed:', error);
+    process.exit(1);
   } finally {
     await engine.close();
     await prisma.$disconnect();
