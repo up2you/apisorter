@@ -29,7 +29,7 @@ type ApiDetailProps = {
     freeTier: string | null;
     logoUrl?: string | null;
     metadata: Record<string, unknown> | null;
-    provider: { name: string | null; website: string | null; logoUrl: string | null } | null;
+    provider: { id?: string; name: string | null; website: string | null; logoUrl: string | null; claimStatus?: string | null } | null;
     metrics: { averageRating: number; reviewCount: number; followerCount: number };
     pricingHistory: Array<{ id: string; createdAt: string; newHash: string | null; diff: Record<string, unknown> | null }>;
     source: 'database' | 'dataset';
@@ -103,7 +103,7 @@ export default function ApiDetailPage({ api, related, initialReviews, initialAve
                 <h1 className="text-3xl font-semibold text-white">{api.name}</h1>
                 <div className="flex items-center gap-3">
                   <p className="text-sm text-gray-400">{api.provider?.name ?? 'Independent provider'}</p>
-                  {api.provider && process.env.NEXT_PUBLIC_ENABLE_CLAIMING === 'true' && (
+                  {api.provider && api.provider.id && process.env.NEXT_PUBLIC_ENABLE_CLAIMING === 'true' && (
                     <ClaimButton
                       providerId={api.provider.id}
                       providerName={api.provider.name || ''}

@@ -49,7 +49,8 @@ async function main() {
     let createdCount = 0;
     let skippedCount = 0;
 
-    for (const [index, record] of records.entries()) {
+    for (let index = 0; index < records.length; index++) {
+        const record = records[index];
         // Logic from catalogData.ts
         const slug = slugify(`${record.vendor_name}-${record.category_slug}-${record.domain_code ?? index}`);
 

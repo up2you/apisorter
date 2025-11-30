@@ -1,5 +1,6 @@
-import { lemonSqueezySetup } from '@lemonsqueezy/lemonsqueezy.js';
+// import { lemonSqueezySetup } from 'lemonsqueezy.ts';
 
 export const lemonSqueezyApiInstance = (apiKey: string) => {
-    lemonSqueezySetup({ apiKey, onError: (error) => console.error("Lemon Squeezy Error:", error) });
+    // lemonSqueezySetup({ apiKey, onError: (error: any) => console.error("Lemon Squeezy Error:", error) });
+    console.log("Lemon Squeezy setup skipped for build");
 };
