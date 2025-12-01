@@ -29,9 +29,21 @@ async function testTcpConnection(host: string, port: number): Promise<string> {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const dbUrl = process.env.DATABASE_URL || '';
+    // Mask password for safety
     const maskedUrl = dbUrl.replace(/:([^:@]+)@/, ':****@');
 
-    const hostname = dbUrl.split('@')[1]?.split(':')[0];
+    // Extract hostname from original DB URL (ignoring if it's currently an IP)
+    // We want to resolve the original hostname 'db.xxx.supabase.co'
+    // If DATABASE_URL is already an IP, we might need to hardcode the hostname or ask user to provide it.
+    // Assuming the user might have reverted to hostname or we can extract it from DIRECT_URL if available.
+    let hostname = dbUrl.split('@')[1]?.split(':')[0]?.replace('[', '').replace(']', '');
+
+    // Hardcode the hostname if we are currently using an IP in the env var, 
+    // so we can resolve it again to find IPv4.
+    // Based on previous logs: db.imjtxkdqlfwkfeqsmaws.supabase.co
+    if (hostname && (hostname.includes(':') || hostname.match(/^\d+\.\d+\.\d+\.\d+$/))) {
+        hostname = 'db.imjtxkdqlfwkfeqsmaws.supabase.co';
+    }
 
     const results = {
         env: {
@@ -39,29 +51,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             DATABASE_URL_MASKED: maskedUrl,
             NODE_ENV: process.env.NODE_ENV,
         },
-        dns: {} as any,
+        dns: {
+            ipv4: {} as any,
+            ipv6: {} as any,
+        },
         tcp: {} as any,
         connection: {} as any,
     };
 
-    // 1. DNS Lookup
+    // 1. DNS Lookup (IPv4 & IPv6)
     try {
         if (hostname) {
-            const ip = await lookup(hostname);
-            results.dns = { hostname, ip };
+            // Look for IPv4
+            try {
+                const ipv4 = await lookup(hostname, { family: 4 });
+                results.dns.ipv4 = ipv4;
+            } catch (e: any) {
+                results.dns.ipv4 = { error: e.message };
+            }
+
+            // Look for IPv6
+            try {
+                const ipv6 = await lookup(hostname, { family: 6 });
+                results.dns.ipv6 = ipv6;
+            } catch (e: any) {
+                results.dns.ipv6 = { error: e.message };
+            }
         } else {
-            results.dns = { error: 'Could not parse hostname from DATABASE_URL' };
+            results.dns.ipv4 = { error: 'Could not parse hostname' };
         }
     } catch (e: any) {
-        results.dns = { error: e.message };
+        results.dns.ipv4 = { error: e.message };
     }
 
-    // 2. TCP Connection Test
-    if (hostname) {
-        results.tcp = {
-            port5432: await testTcpConnection(hostname, 5432),
-            port6543: await testTcpConnection(hostname, 6543),
-        };
+    // 2. TCP Connection Test (Try IPv4 if available)
+    if (results.dns.ipv4 && results.dns.ipv4.address) {
+        results.tcp.ipv4_port5432 = await testTcpConnection(results.dns.ipv4.address, 5432);
+        results.tcp.ipv4_port6543 = await testTcpConnection(results.dns.ipv4.address, 6543);
+    }
+
+    if (results.dns.ipv6 && results.dns.ipv6.address) {
+        results.tcp.ipv6_port5432 = await testTcpConnection(results.dns.ipv6.address, 5432);
     }
 
     // 3. Prisma Connection
