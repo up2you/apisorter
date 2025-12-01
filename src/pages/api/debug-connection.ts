@@ -29,21 +29,11 @@ async function testTcpConnection(host: string, port: number): Promise<string> {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const dbUrl = process.env.DATABASE_URL || '';
-    // Mask password for safety
     const maskedUrl = dbUrl.replace(/:([^:@]+)@/, ':****@');
 
-    // Extract hostname from original DB URL (ignoring if it's currently an IP)
-    // We want to resolve the original hostname 'db.xxx.supabase.co'
-    // If DATABASE_URL is already an IP, we might need to hardcode the hostname or ask user to provide it.
-    // Assuming the user might have reverted to hostname or we can extract it from DIRECT_URL if available.
-    let hostname = dbUrl.split('@')[1]?.split(':')[0]?.replace('[', '').replace(']', '');
-
-    // Hardcode the hostname if we are currently using an IP in the env var, 
-    // so we can resolve it again to find IPv4.
-    // Based on previous logs: db.imjtxkdqlfwkfeqsmaws.supabase.co
-    if (hostname && (hostname.includes(':') || hostname.match(/^\d+\.\d+\.\d+\.\d+$/))) {
-        hostname = 'db.imjtxkdqlfwkfeqsmaws.supabase.co';
-    }
+    // Hardcoded hostname to ensure we get the correct IP resolution
+    // regardless of what is currently in DATABASE_URL
+    const hostname = 'db.imjtxkdqlfwkfeqsmaws.supabase.co';
 
     const results = {
         env: {
@@ -52,6 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             NODE_ENV: process.env.NODE_ENV,
         },
         dns: {
+            target_hostname: hostname,
             ipv4: {} as any,
             ipv6: {} as any,
         },
@@ -61,24 +52,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 1. DNS Lookup (IPv4 & IPv6)
     try {
-        if (hostname) {
-            // Look for IPv4
-            try {
-                const ipv4 = await lookup(hostname, { family: 4 });
-                results.dns.ipv4 = ipv4;
-            } catch (e: any) {
-                results.dns.ipv4 = { error: e.message };
-            }
+        // Look for IPv4
+        try {
+            const ipv4 = await lookup(hostname, { family: 4 });
+            results.dns.ipv4 = ipv4;
+        } catch (e: any) {
+            results.dns.ipv4 = { error: e.message };
+        }
 
-            // Look for IPv6
-            try {
-                const ipv6 = await lookup(hostname, { family: 6 });
-                results.dns.ipv6 = ipv6;
-            } catch (e: any) {
-                results.dns.ipv6 = { error: e.message };
-            }
-        } else {
-            results.dns.ipv4 = { error: 'Could not parse hostname' };
+        // Look for IPv6
+        try {
+            const ipv6 = await lookup(hostname, { family: 6 });
+            results.dns.ipv6 = ipv6;
+        } catch (e: any) {
+            results.dns.ipv6 = { error: e.message };
         }
     } catch (e: any) {
         results.dns.ipv4 = { error: e.message };
