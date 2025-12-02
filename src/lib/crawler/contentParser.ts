@@ -121,7 +121,6 @@ export class ContentParser {
             logoUrl,
             hasPricing,
             hasDocs,
-            hasDocs,
             version,
             category: aiCategory,
             confidence: aiConfidence,
