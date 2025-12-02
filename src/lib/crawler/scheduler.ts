@@ -49,6 +49,8 @@ export class Scheduler {
                 // Only update status if it was pending, otherwise keep it active/as is
                 // or we can explicitly set it to ACTIVE if crawl was successful
                 status: 'ACTIVE',
+                category: info.category || undefined,
+                metadata: info.confidence ? { ai_confidence: info.confidence } : undefined,
             },
         });
     }

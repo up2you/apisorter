@@ -110,7 +110,7 @@ export default function SignInPage({ providers }: SignInPageProps) {
                       className="btn btn-secondary w-full"
                       type="button"
                     >
-                      {provider.name}
+                      {provider.id === 'google' ? 'Sign in with Google' : provider.name}
                     </button>
                   ))}
               </div>

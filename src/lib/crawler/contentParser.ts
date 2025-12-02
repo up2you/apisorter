@@ -1,4 +1,5 @@
 import { CrawlResult } from './crawlerEngine';
+import { AIAnalyzer } from '../discovery/aiAnalyzer';
 
 export interface ParsedApiInfo {
     title?: string;
@@ -14,17 +15,41 @@ export interface ParsedApiInfo {
     hasPricing: boolean;
     hasDocs: boolean;
     version?: string;
+    category?: string;
+    confidence?: number;
 }
 
 export class ContentParser {
-    parse(result: CrawlResult): ParsedApiInfo {
+    async parse(result: CrawlResult, apiKey?: string): Promise<ParsedApiInfo> {
         const content = result.content.toLowerCase();
         const title = result.title;
 
         // Basic description extraction (first paragraph or meta description if available in content)
         // Since we only have text content, we'll take the first non-empty line after title
         const lines = result.content.split('\n').map(l => l.trim()).filter(l => l.length > 20);
-        const description = lines.find(l => !l.includes(title) && l.length > 50)?.slice(0, 200);
+        let description = lines.find(l => !l.includes(title) && l.length > 50)?.slice(0, 200);
+
+        // AI Enrichment
+        let aiCategory: string | undefined;
+        let aiConfidence: number | undefined;
+
+        if (apiKey) {
+            try {
+                const analyzer = new AIAnalyzer(apiKey);
+                // Use the first 2000 chars of content to avoid token limits and speed up processing
+                const analysisText = result.content.slice(0, 2000);
+                const aiResult = await analyzer.analyze(analysisText, title);
+
+                if (aiResult) {
+                    console.log(`AI Analysis successful for ${title}`);
+                    if (aiResult.description) description = aiResult.description;
+                    if (aiResult.category) aiCategory = aiResult.category;
+                    if (aiResult.confidence) aiConfidence = aiResult.confidence;
+                }
+            } catch (error) {
+                console.error('AI Enrichment failed:', error);
+            }
+        }
 
         const links = result.links;
 
@@ -96,7 +121,10 @@ export class ContentParser {
             logoUrl,
             hasPricing,
             hasDocs,
+            hasDocs,
             version,
+            category: aiCategory,
+            confidence: aiConfidence,
         };
     }
 }

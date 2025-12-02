@@ -84,9 +84,9 @@ export default function ApiDetailPage({ api, related, initialReviews, initialAve
         />
       </Head>
       <SiteHeader />
-      <main className="mx-auto max-w-7xl px-6">
-        <section className="mt-12 grid gap-10 lg:grid-cols-[1.5fr_1fr]">
-          <div className="rounded-[32px] border border-white/5 bg-gradient-to-br from-white/10 via-surface to-white/5 p-10 shadow-card">
+      <main className="mx-auto max-w-7xl px-6 pb-20">
+        <section className="mt-12 grid gap-8 lg:grid-cols-[1.6fr_1fr]">
+          <div className="rounded-[32px] border border-white/10 bg-gradient-to-br from-white/[0.08] via-surface to-transparent p-8 md:p-10 shadow-2xl backdrop-blur-sm">
             <div className="flex items-center gap-4">
               <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-white/10 text-2xl text-white overflow-hidden">
                 {api.logoUrl ? (
@@ -167,7 +167,7 @@ export default function ApiDetailPage({ api, related, initialReviews, initialAve
           </div>
 
           <aside className="space-y-6">
-            <div className="rounded-3xl border border-white/5 bg-white/5 p-6">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-md">
               <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-gray-400">Ratings</h2>
               <div className="mt-4 flex items-center gap-3 text-3xl font-semibold text-white">
                 {average.toFixed(2)}
@@ -176,7 +176,7 @@ export default function ApiDetailPage({ api, related, initialReviews, initialAve
               <p className="mt-2 text-sm text-gray-400">Based on {count} anonymous reviews.</p>
             </div>
 
-            <div className="rounded-3xl border border-white/5 bg-white/5 p-6 text-sm text-gray-300">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 text-sm text-gray-300 backdrop-blur-md">
               <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-gray-400">Metadata</h3>
               <dl className="mt-4 space-y-3">
                 <div className="flex justify-between">

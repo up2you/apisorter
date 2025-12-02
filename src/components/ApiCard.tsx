@@ -31,7 +31,7 @@ export default function ApiCard({
 
   return (
     <Link href={`/api/${slug}`}>
-      <article className="card group flex h-full flex-col overflow-hidden transition-all duration-300 hover:border-accent/50 hover:shadow-lg cursor-pointer">
+      <article className="card group flex h-full flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:border-accent/50 hover:shadow-2xl hover:shadow-accent/10 cursor-pointer">
         {/* Top Decoration Bar */}
         <div className="h-1 w-full bg-gradient-to-r from-accent via-highlight to-accent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 

@@ -55,9 +55,10 @@ export default function Home({ featured, catalog, categories, spotlightReviews }
       <SiteHeader />
       <main className="relative">
         {/* Hero Section - Compacted */}
-        <section className="container-max relative mt-8 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-accent/20 via-midnight to-surface p-8 shadow-lg md:p-12">
-          <div className="absolute right-0 top-0 -z-10 h-96 w-96 rounded-full bg-accent/10 blur-3xl" />
-          <div className="absolute bottom-0 left-1/4 -z-10 h-80 w-80 rounded-full bg-highlight/5 blur-3xl" />
+        {/* Hero Section - Compacted */}
+        <section className="container-max relative mt-8 overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-indigo-900/40 via-midnight to-surface p-8 shadow-2xl md:p-16">
+          <div className="absolute right-0 top-0 -z-10 h-[500px] w-[500px] rounded-full bg-accent/20 blur-[100px] opacity-50" />
+          <div className="absolute bottom-0 left-0 -z-10 h-[400px] w-[400px] rounded-full bg-highlight/10 blur-[80px] opacity-40" />
 
           <div className="relative z-10 flex flex-col items-center text-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 mb-8">

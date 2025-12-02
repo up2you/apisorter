@@ -31,7 +31,8 @@ async function main() {
         continue;
       }
 
-      const info = parser.parse(result);
+      const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+      const info = await parser.parse(result, apiKey);
       console.log(`Parsed info for ${api.name}:`, info);
 
       // Update API with new info

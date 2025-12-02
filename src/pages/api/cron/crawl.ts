@@ -38,7 +38,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     continue;
                 }
 
-                const info = parser.parse(result);
+                const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+                const info = await parser.parse(result, apiKey);
                 await scheduler.updateApiInfo(api.id, info);
                 results.push({ name: api.name, status: 'updated', info });
             } catch (e: any) {
