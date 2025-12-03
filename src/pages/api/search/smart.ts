@@ -5,8 +5,11 @@ import { pipeline } from '@xenova/transformers';
 import { Prisma } from '@prisma/client';
 
 // Initialize Google Gemini
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '');
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || '';
+console.log('API Key present:', !!apiKey);
+console.log('API Key length:', apiKey.length);
+const genAI = new GoogleGenerativeAI(apiKey);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 // Singleton for the embedding model to avoid reloading on every request
 let embeddingExtractor: any = null;
