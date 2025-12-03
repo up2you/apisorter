@@ -14,7 +14,7 @@ export class AIAnalyzer {
 
     constructor(apiKey: string) {
         this.genAI = new GoogleGenerativeAI(apiKey);
-        this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
+        this.model = this.genAI.getGenerativeModel({ model: "gemini-pro" });
     }
 
     async analyze(text: string, title: string): Promise<ExtractedApi | null> {
