@@ -5,7 +5,7 @@ import { pipeline } from '@xenova/transformers';
 import { Prisma } from '@prisma/client';
 
 // Initialize Google Gemini
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENERATIVE_AI_API_KEY || '');
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 // Singleton for the embedding model to avoid reloading on every request
