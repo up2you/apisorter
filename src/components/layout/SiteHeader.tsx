@@ -6,6 +6,7 @@ import { signOut, useSession } from 'next-auth/react';
 import DonationButton from '../donation/DonationButton';
 
 const navItems = [
+  { href: '/category/all', label: 'All APIs' },
   { href: '/category/AI%20%26%20Machine%20Learning', label: 'AI APIs' },
   { href: '/category/Payments%20%26%20Finance', label: 'Payments' },
   { href: '/category/Maps%20%26%20Geolocation', label: 'Maps' },
