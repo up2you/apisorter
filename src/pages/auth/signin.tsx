@@ -106,7 +106,14 @@ export default function SignInPage({ providers }: SignInPageProps) {
                   .map((provider) => (
                     <button
                       key={provider.name}
-                      onClick={() => signIn(provider.id)}
+                      onClick={() =>
+                        signIn(provider.id, {
+                          callbackUrl: (router.query.callbackUrl as string) || '/',
+                          ...(provider.id === 'google'
+                            ? { authorization: { params: { prompt: 'select_account' } } }
+                            : {}),
+                        })
+                      }
                       className="btn btn-secondary w-full"
                       type="button"
                     >
