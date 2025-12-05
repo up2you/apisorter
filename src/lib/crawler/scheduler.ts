@@ -35,6 +35,21 @@ export class Scheduler {
     }
 
     async updateApiInfo(id: string, info: any) {
+        // First get the API to find its provider
+        const api = await prisma.api.findUnique({
+            where: { id },
+            select: { providerId: true }
+        });
+
+        if (api && api.providerId && info.contact) {
+            await prisma.provider.update({
+                where: { id: api.providerId },
+                data: {
+                    contact: info.contact,
+                }
+            });
+        }
+
         await prisma.api.update({
             where: { id },
             data: {

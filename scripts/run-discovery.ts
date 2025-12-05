@@ -6,9 +6,9 @@ import { AIAnalyzer } from '@/lib/discovery/aiAnalyzer';
 async function main() {
     console.log('Starting AI Discovery...');
 
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) {
-        console.error('OPENAI_API_KEY not found in environment variables.');
+        console.error('GOOGLE_GENERATIVE_AI_API_KEY not found in environment variables.');
         process.exit(1);
     }
 

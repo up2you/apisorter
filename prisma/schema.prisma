@@ -33,6 +33,7 @@ model User {
   password          String?
   name              String?
   nickname          String?
+  image             String?
   role              UserRole        @default(USER)
   stripeCustomerId  String?
   emailVerified     DateTime?

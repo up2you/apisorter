@@ -17,6 +17,7 @@ export interface ParsedApiInfo {
     version?: string;
     category?: string;
     confidence?: number;
+    contact?: string;
 }
 
 export class ContentParser {
@@ -124,6 +125,7 @@ export class ContentParser {
             version,
             category: aiCategory,
             confidence: aiConfidence,
+            contact: result.contactLinks?.join(', '),
         };
     }
 }

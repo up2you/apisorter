@@ -7,6 +7,7 @@ export interface CrawlResult {
     links: string[];
     metaImages: string[];
     icons: string[];
+    contactLinks?: string[];
     screenshot?: Buffer;
     error?: string;
 }
@@ -70,6 +71,13 @@ export class CrawlerEngine {
                 return icons;
             });
 
+            // Extract contact info (mailto links)
+            const contactLinks = await page.evaluate(() => {
+                return Array.from(document.querySelectorAll('a[href^="mailto:"]'))
+                    .map(a => a.getAttribute('href')?.replace('mailto:', '').trim())
+                    .filter(email => email && email.includes('@'));
+            });
+
             return {
                 url,
                 title,
@@ -77,6 +85,7 @@ export class CrawlerEngine {
                 links,
                 metaImages,
                 icons,
+                contactLinks: Array.from(new Set(contactLinks)) as string[],
             };
         } catch (error: any) {
             return {

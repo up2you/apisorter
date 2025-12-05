@@ -99,6 +99,14 @@ export default function SiteHeader() {
                       <p className="truncate text-sm font-medium text-white">{session.user.email}</p>
                     </div>
 
+                    <Link
+                      href="/profile"
+                      className="block px-4 py-2 text-sm text-gray-200 hover:bg-white/5"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      Profile Settings
+                    </Link>
+
                     {session.user.role === 'ADMIN' && (
                       <Link
                         href="/admin"

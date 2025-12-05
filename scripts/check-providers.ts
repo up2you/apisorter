@@ -3,17 +3,30 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-    const topApis = await prisma.api.findMany({
-        where: { status: 'ACTIVE' },
-        orderBy: [{ featured: 'desc' }, { reviews: { _count: 'desc' } }],
-        take: 10,
-        select: { id: true, name: true }
-    });
+    try {
+        const count = await prisma.provider.count();
+        console.log(`Total Providers: ${count}`);
 
-    console.log('Top APIs to fix:');
-    topApis.forEach(api => console.log(`${api.id}|${api.name}`));
+        const withContact = await prisma.provider.count({
+            where: { contact: { not: null } }
+        });
+        console.log(`Providers with Contact Info: ${withContact}`);
+
+        const providers = await prisma.provider.findMany({
+            take: 10,
+            orderBy: { createdAt: 'desc' },
+            select: { name: true, contact: true }
+        });
+
+        console.log('Latest 10 Providers Contact Info:');
+        providers.forEach(p => {
+            console.log(`- ${p.name}: ${p.contact || 'NULL'}`);
+        });
+    } catch (error) {
+        console.error('Error fetching providers:', error);
+    } finally {
+        await prisma.$disconnect();
+    }
 }
 
-main()
-    .catch(e => console.error(e))
-    .finally(async () => await prisma.$disconnect());
+main();
