@@ -312,7 +312,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             user: {
                 name: user.name,
                 email: user.email,
-                image: user.image || session.user.image || null,
+                image: user.image || (session.user as any).image || null,
             },
             favorites: serializedFavorites,
             reviews: serializedReviews,
