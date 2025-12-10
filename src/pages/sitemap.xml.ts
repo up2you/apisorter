@@ -1,11 +1,14 @@
 import { GetServerSideProps } from 'next';
 import prisma from '@/lib/prisma';
 
-const EXTERNAL_DATA_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://apisorter.com';
+const EXTERNAL_DATA_URL = process.env.NEXT_PUBLIC_SITE_URL
+  || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+  || 'https://apisorter.com';
 
 function generateSiteMap(apis: { slug: string }[], categories: { category: string }[]) {
-    return `<?xml version="1.0" encoding="UTF-8"?>
+  return `<?xml version="1.0" encoding="UTF-8"?>
    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+     <!-- Debug: Detected URL = ${EXTERNAL_DATA_URL} -->
      <!--Static Pages-->
      <url>
        <loc>${EXTERNAL_DATA_URL}</loc>
@@ -30,71 +33,71 @@ function generateSiteMap(apis: { slug: string }[], categories: { category: strin
 
      <!--Dynamic Categories-->
      ${categories
-            .map(({ category }) => {
-                return `
+      .map(({ category }) => {
+        return `
        <url>
            <loc>${EXTERNAL_DATA_URL}/category/${encodeURIComponent(category)}</loc>
            <changefreq>daily</changefreq>
            <priority>0.9</priority>
        </url>
      `;
-            })
-            .join('')}
+      })
+      .join('')}
 
      <!--Dynamic APIs-->
      ${apis
-            .map(({ slug }) => {
-                return `
+      .map(({ slug }) => {
+        return `
        <url>
            <loc>${EXTERNAL_DATA_URL}/api/${slug}</loc>
            <changefreq>weekly</changefreq>
            <priority>0.7</priority>
        </url>
      `;
-            })
-            .join('')}
+      })
+      .join('')}
    </urlset>
  `;
 }
 
 export default function SiteMap() {
-    // getServerSideProps will do the heavy lifting
+  // getServerSideProps will do the heavy lifting
 }
 
 export const getServerSideProps: GetServerSideProps = async ({ res }) => {
-    // We make an API call to gather the URLs for our site
+  // We make an API call to gather the URLs for our site
 
-    // 1. Get all APIs
-    const apis = await prisma.api.findMany({
-        select: {
-            slug: true,
-        },
-        where: {
-            status: 'ACTIVE'
-        },
-        take: 5000 // Limit to avoid massive pages, or implement paging for multiple sitemaps if needed. 5000 is safe for now.
-    });
+  // 1. Get all APIs
+  const apis = await prisma.api.findMany({
+    select: {
+      slug: true,
+    },
+    where: {
+      status: 'ACTIVE'
+    },
+    take: 5000 // Limit to avoid massive pages, or implement paging for multiple sitemaps if needed. 5000 is safe for now.
+  });
 
-    // 2. Get all distinct Categories
-    const categoriesRaw = await prisma.api.findMany({
-        select: { category: true },
-        distinct: ['category'],
-        where: { status: 'ACTIVE' }
-    });
+  // 2. Get all distinct Categories
+  const categoriesRaw = await prisma.api.findMany({
+    select: { category: true },
+    distinct: ['category'],
+    where: { status: 'ACTIVE' }
+  });
 
-    // Generate the XML sitemap with the posts data
-    const sitemap = generateSiteMap(apis, categoriesRaw);
+  // Generate the XML sitemap with the posts data
+  const sitemap = generateSiteMap(apis, categoriesRaw);
 
-    // Set Cache Control to avoid database hit on every crawler request
-    // Cache for 1 hour (3600 seconds)
-    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=59');
-    res.setHeader('Content-Type', 'text/xml');
+  // Set Cache Control to avoid database hit on every crawler request
+  // Cache for 1 hour (3600 seconds)
+  res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=59');
+  res.setHeader('Content-Type', 'text/xml');
 
-    // Send the XML to the browser
-    res.write(sitemap);
-    res.end();
+  // Send the XML to the browser
+  res.write(sitemap);
+  res.end();
 
-    return {
-        props: {},
-    };
+  return {
+    props: {},
+  };
 };
