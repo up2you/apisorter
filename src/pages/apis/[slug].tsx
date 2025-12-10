@@ -2,7 +2,7 @@ import { ApiStatus } from '@prisma/client';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { format } from 'date-fns';
 
 import AddReviewForm from '@/components/AddReviewForm.client';
