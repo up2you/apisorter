@@ -1,0 +1,35 @@
+name: Daily AI Discovery
+
+on:
+  schedule:
+    # Run at 06:00 UTC every day (approx 14:00 Taiwan Time)
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  discovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15 # Avoid infinite loops
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run AI Discovery Engine
+        run: npx tsx scripts/run-discovery.ts
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+          # Optional: Add any other env vars if needed
