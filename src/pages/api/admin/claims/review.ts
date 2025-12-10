@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
+import { sendClaimStatusNotification } from '@/lib/email';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
@@ -33,8 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 where: { id: providerId },
                 data: {
                     claimStatus: 'APPROVED',
-                    // Here we could also update the provider's contact email to the claim email
-                    contact: provider.claimEmail,
+                    contact: provider.claimEmail, // Set regular contact to claim email
                 },
             });
         } else {
@@ -42,13 +42,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 where: { id: providerId },
                 data: {
                     claimStatus: 'REJECTED',
-                    // Optional: Clear the claim info so they can try again? 
-                    // Or keep it as rejected history. Let's keep it rejected for now.
-                    // If we want them to retry, we might want to set it back to UNCLAIMED or similar.
-                    // Let's set it to REJECTED, and maybe clear the user link so someone else can claim?
-                    // For simplicity, let's just mark REJECTED.
                 },
             });
+        }
+
+        // Notify User
+        if (provider.claimEmail) {
+            await sendClaimStatusNotification(provider.claimEmail, provider.name, action as 'APPROVED' | 'REJECTED');
         }
 
         return res.status(200).json({ message: `Claim ${action}D` });

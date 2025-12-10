@@ -3,49 +3,91 @@ import { CrawlerEngine } from '@/lib/crawler/crawlerEngine';
 import { ContentParser } from '@/lib/crawler/contentParser';
 import { Scheduler } from '@/lib/crawler/scheduler';
 import prisma from '@/lib/prisma';
+import { sendCrawlerReport, CrawlerStats } from '@/lib/notifications/adminAlerts';
+import pLimit from 'p-limit';
 
 async function main() {
-  console.log('Starting crawler...');
+  console.log('Starting crawler with enhanced parallelism...');
 
   const engine = new CrawlerEngine();
   const parser = new ContentParser();
   const scheduler = new Scheduler();
 
+  // Stats tracking
+  const stats: CrawlerStats = {
+    total: 0,
+    success: 0,
+    failed: 0,
+    durationMs: 0,
+    errors: []
+  };
+
+  const startTime = Date.now();
+
   try {
     await engine.init();
 
-    const apis = await scheduler.getApisToCrawl(5); // Crawl 5 at a time
+    // Limit concurrency to 2 to avoid resource exhaustion or rate limits
+    const limit = pLimit(2);
+
+    // Increase batch size since we are processing in parallel
+    const apis = await scheduler.getApisToCrawl(15);
     console.log(`Found ${apis.length} APIs to crawl.`);
+    stats.total = apis.length;
 
-    for (const api of apis) {
-      console.log(`Crawling ${api.name} (${api.docsUrl})...`);
-      const start = Date.now();
+    const crawlPromises = apis.map(api => limit(async () => {
+      console.log(`[Start] Crawling ${api.name} (${api.docsUrl})...`);
+      const apiStart = Date.now();
 
-      const result = await engine.crawl(api.docsUrl);
-      const duration = Date.now() - start;
+      try {
+        const result = await engine.crawl(api.docsUrl);
+        const duration = Date.now() - apiStart;
 
-      if (result.error) {
-        console.error(`Error crawling ${api.name}: ${result.error}`);
-        // Mark as potentially broken if error persists? For now just update lastChecked
-        await scheduler.updateApiStatus(api.id, api.status, duration);
-        continue;
+        if (result.error) {
+          throw new Error(result.error);
+        }
+
+        const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+        const info = await parser.parse(result, apiKey);
+
+        await scheduler.updateApiInfo(api.id, info);
+        console.log(`[Success] Updated ${api.name} (${duration}ms)`);
+        stats.success++;
+
+      } catch (error: any) {
+        console.error(`[Error] Failed ${api.name}:`, error.message);
+
+        // Log error to stats
+        stats.failed++;
+        stats.errors.push({
+          name: api.name,
+          url: api.docsUrl,
+          error: error.message || 'Unknown error'
+        });
+
+        // Update DB status
+        await scheduler.updateApiStatus(api.id, 'BROKEN', Date.now() - apiStart);
       }
+    }));
 
-      const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-      const info = await parser.parse(result, apiKey);
-      console.log(`Parsed info for ${api.name}:`, info);
-
-      // Update API with new info
-      await scheduler.updateApiInfo(api.id, info);
-      console.log(`Updated database for ${api.name}`);
-    }
+    await Promise.all(crawlPromises);
 
   } catch (error) {
-    console.error('Crawler failed:', error);
-    process.exit(1);
+    console.error('Fatal crawler error:', error);
   } finally {
+    stats.durationMs = Date.now() - startTime;
+    console.log('\n--- Final Stats ---');
+    console.log(`Total: ${stats.total}, Success: ${stats.success}, Failed: ${stats.failed}`);
+    console.log(`Duration: ${(stats.durationMs / 1000).toFixed(2)}s`);
+
     await engine.close();
     await prisma.$disconnect();
+
+    // Send Admin Report
+    if (stats.total > 0) {
+      console.log('Sending admin report...');
+      await sendCrawlerReport(stats);
+    }
   }
 }
 

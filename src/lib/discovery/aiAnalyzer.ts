@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import prisma from '@/lib/prisma';
 
 export interface ExtractedApi {
     name: string;
@@ -14,60 +15,99 @@ export class AIAnalyzer {
 
     constructor(apiKey: string) {
         this.genAI = new GoogleGenerativeAI(apiKey);
-        this.model = this.genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+        this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     }
 
-    async analyze(text: string, title: string): Promise<ExtractedApi | null> {
-        const prompt = `
-    Analyze the following news article title and content to determine if it introduces or discusses a new API service or developer tool that provides an API.
-    
-    Title: ${title}
-    Content: ${text}
-    
-    If it IS about a new API/Developer Tool, extract the following in JSON format:
-    {
-      "is_api": true,
-      "name": "Name of the API/Tool",
-      "description": "Brief description of what it does (max 200 chars)",
-      "url": "URL of the API documentation or main site (if mentioned, otherwise null)",
-      "category": "Best fitting category (e.g., AI, DevTools, Finance, Social, etc.)",
-      "confidence": 0.9 (how sure are you this is an API product?)
-    }
-    
-    If it is NOT about a new API/Tool, return:
-    {
-      "is_api": false
-    }
-    
-    Return ONLY the JSON.
-    `;
+    async analyze(text: string, title?: string): Promise<ExtractedApi | null> {
+        let retries = 0;
+        const MAX_RETRIES = 3;
 
-        try {
-            const result = await this.model.generateContent({
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: "application/json" }
-            });
+        while (retries <= MAX_RETRIES) {
+            try {
+                const prompt = `
+                Analyze the following website content and determine if it represents a public API, SDK, or developer tool.
+                Title: ${title || ''}
+                Content Fragment: "${text.substring(0, 2000)}..."
 
-            const content = result.response.text();
-            if (!content) return null;
+                Return a JSON object with the following fields:
+                - is_api: boolean (true if it's an API/tool)
+                - name: string (inferred name)
+                - description: string (short description)
+                - url: string (main documentation URL if found, else domain)
+                - category: string (e.g. AI, Finance, Social, Utilities)
+                - confidence: number (0.0 to 1.0)
 
-            const parsed = JSON.parse(content);
+                Response format: JSON only.
+                `;
 
-            if (parsed.is_api && parsed.confidence > 0.7) {
-                return {
-                    name: parsed.name,
-                    description: parsed.description,
-                    url: parsed.url || '',
-                    category: parsed.category,
-                    confidence: parsed.confidence
-                };
+                const result = await this.model.generateContent({
+                    contents: [{ role: "user", parts: [{ text: prompt }] }],
+                    generationConfig: { responseMimeType: "application/json" }
+                });
+
+                // Extract result
+                const responseText = result.response.text();
+                const usage = result.response.usageMetadata;
+
+                // Log AI Usage
+                const tokensIn = usage?.promptTokenCount || 0;
+                const tokensOut = usage?.candidatesTokenCount || 0;
+                const cost = (tokensIn * 0.000000075) + (tokensOut * 0.0000003);
+
+                try {
+                    await prisma.aiUsageLog.create({
+                        data: {
+                            model: 'gemini-1.5-flash',
+                            tokensIn,
+                            tokensOut,
+                            cost,
+                            context: 'content-analysis'
+                        }
+                    });
+                } catch (logErr) {
+                    // console.error('Failed to log AI usage:', logErr);
+                }
+
+                // Parse JSON
+                let parsedContent: any;
+                try {
+                    parsedContent = JSON.parse(responseText);
+                } catch (e) {
+                    // Fallback regex if direct parse fails
+                    const jsonMatch = responseText.match(/```json\n([\s\S]*?)\n```/) || responseText.match(/{[\s\S]*}/);
+                    if (jsonMatch && jsonMatch[1]) {
+                        parsedContent = JSON.parse(jsonMatch[1]);
+                    } else if (jsonMatch && jsonMatch[0]) {
+                        parsedContent = JSON.parse(jsonMatch[0]);
+                    } else {
+                        return null;
+                    }
+                }
+
+                if (parsedContent.is_api && parsedContent.confidence > 0.7) {
+                    return {
+                        name: parsedContent.name,
+                        description: parsedContent.description,
+                        url: parsedContent.url || '',
+                        category: parsedContent.category,
+                        confidence: parsedContent.confidence
+                    };
+                }
+
+                return null;
+
+            } catch (error: any) {
+                if (error.status === 429) {
+                    retries++;
+                    const delay = Math.pow(2, retries) * 1000;
+                    console.warn(`[AI] Rate limit hit. Retrying in ${delay / 1000}s...`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                } else {
+                    console.error('[AI] Analysis error:', error);
+                    return null;
+                }
             }
-
-            return null;
-
-        } catch (error) {
-            console.error("AI Analysis failed:", error);
-            return null;
         }
+        return null; // Failed after retries
     }
 }

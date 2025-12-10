@@ -7,7 +7,7 @@ import Link from 'next/link';
 
 import ApiCard from '@/components/ApiCard';
 import SmartSearch from '@/components/home/SmartSearch';
-import AdSlot from '@/components/AdSlot';
+import AdUnit from '@/components/ads/AdUnit';
 import SiteFooter from '@/components/layout/SiteFooter';
 import SiteHeader from '@/components/layout/SiteHeader';
 import { CATEGORY_NAMES } from '@/data/categories';
@@ -59,6 +59,11 @@ export default function Home({ featured, catalog, categories, spotlightReviews }
         <section className="container-max relative mt-8 overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-indigo-900/40 via-midnight to-surface p-8 shadow-2xl md:p-16">
           <div className="absolute right-0 top-0 -z-10 h-[500px] w-[500px] rounded-full bg-accent/20 blur-[100px] opacity-50" />
           <div className="absolute bottom-0 left-0 -z-10 h-[400px] w-[400px] rounded-full bg-highlight/10 blur-[80px] opacity-40" />
+
+          {/* Ad Unit: Home Hero */}
+          <div className="absolute top-4 right-4 hidden lg:block w-[300px]">
+            <AdUnit slotKey="home-hero-ad" />
+          </div>
 
           <div className="relative z-10 flex flex-col items-center text-center">
             <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 mb-8">

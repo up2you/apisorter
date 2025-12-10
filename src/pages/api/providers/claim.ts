@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
+import { sendAdminClaimAlert } from '@/lib/email';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
@@ -60,6 +61,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 // We could store isDomainMatch in metadata or a separate field if we want to flag it for admin
             }
         });
+
+        // Notify Admin
+        await sendAdminClaimAlert(provider.name, claimEmail, providerId);
 
         return res.status(200).json({
             message: 'Claim request submitted',

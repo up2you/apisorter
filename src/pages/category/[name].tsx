@@ -4,7 +4,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 
 import ApiCard from '@/components/ApiCard';
-import AdSlot from '@/components/AdSlot';
+import AdUnit from '@/components/ads/AdUnit';
 import CategoryBadge from '@/components/CategoryBadge';
 import Pagination from '@/components/Pagination';
 import SiteFooter from '@/components/layout/SiteFooter';
@@ -56,11 +56,9 @@ export default function CategoryPage({
                   Filter by free tiers or explore adjacent categories.
                 </p>
               </div>
-              <AdSlot
-                title="Category takeover — 300×250"
-                description="Feature your developer platform to reach teams researching APIs now."
-                size="300×250"
-              />
+              <div className="hidden md:block w-[300px]">
+                <AdUnit slotKey="category-header-ad" />
+              </div>
             </div>
 
             <form method="get" className="grid gap-4 md:grid-cols-3">

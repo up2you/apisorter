@@ -105,6 +105,8 @@ model Api {
   lastHash        String?
   responseTimeMs  Int?
   metadata        Json?
+  views           Int             @default(0)
+  clicks          Int             @default(0)
   descriptionEmbedding Json?  // Stores vector embedding as array of numbers
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -370,4 +372,38 @@ model DiscoveryLog {
   
   @@unique([sourceId, url])
   @@index([status])
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  interests String[] @default([])
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AiUsageLog {
+  id        String   @id @default(cuid())
+  model     String
+  tokensIn  Int
+  tokensOut Int
+  cost      Float    @default(0)
+  context   String   // e.g. 'crawler', 'smart-search'
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model DailySystemStat {
+  id          String   @id @default(cuid())
+  date        DateTime @unique // stored as midnight YYYY-MM-DD
+  totalRevenue Float   @default(0)
+  totalAiCost  Float   @default(0)
+  apiViews     Int     @default(0)
+  apiClicks    Int     @default(0)
+  newUsers     Int     @default(0)
+  updatedAt    DateTime @updatedAt
+  
+  @@index([date])
 }

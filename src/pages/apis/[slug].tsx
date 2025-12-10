@@ -62,6 +62,24 @@ export default function ApiDetailPage({ api, related, initialReviews, initialAve
   const [count, setCount] = useState(initialCount);
   const isDatasetSource = api.source === 'dataset';
 
+  // Analytics: Track View
+  useEffect(() => {
+    // Fire and forget
+    fetch('/api/analytics/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'view', apiId: api.id })
+    }).catch(err => console.error('View track error', err));
+  }, [api.id]);
+
+  const handleTrackClick = () => {
+    fetch('/api/analytics/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'click', apiId: api.id })
+    }).catch(err => console.error('Click track error', err));
+  };
+
   const refreshReviews = useCallback(async () => {
     if (api.source === 'dataset') {
       return;
@@ -103,7 +121,7 @@ export default function ApiDetailPage({ api, related, initialReviews, initialAve
                 <h1 className="text-3xl font-semibold text-white">{api.name}</h1>
                 <div className="flex items-center gap-3">
                   <p className="text-sm text-gray-400">{api.provider?.name ?? 'Independent provider'}</p>
-                  {api.provider && api.provider.id && process.env.NEXT_PUBLIC_ENABLE_CLAIMING === 'true' && (
+                  {api.provider && api.provider.id && (
                     <ClaimButton
                       providerId={api.provider.id}
                       providerName={api.provider.name || ''}
@@ -139,6 +157,7 @@ export default function ApiDetailPage({ api, related, initialReviews, initialAve
                 href={api.docsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={handleTrackClick}
                 className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-midnight transition-colors hover:bg-highlight"
               >
                 View docs ↗
@@ -148,6 +167,7 @@ export default function ApiDetailPage({ api, related, initialReviews, initialAve
                   href={api.pricingUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={handleTrackClick}
                   className="inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-gray-200 hover:border-accent"
                 >
                   Pricing ↗
@@ -158,6 +178,7 @@ export default function ApiDetailPage({ api, related, initialReviews, initialAve
                   href={api.provider.website}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={handleTrackClick}
                   className="inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-gray-200 hover:border-accent"
                 >
                   Provider ↗
@@ -183,6 +204,7 @@ export default function ApiDetailPage({ api, related, initialReviews, initialAve
                   <dt className="text-gray-500">Followers</dt>
                   <dd className="font-semibold text-white">{api.metrics.followerCount}</dd>
                 </div>
+                {/* Views & Clicks (Optional to show publicly? Maybe not. Keep internal.) */}
                 {api.metadata && Object.keys(api.metadata).length > 0 &&
                   Object.entries(api.metadata).slice(0, 4).map(([key, value]) => (
                     <div key={key} className="flex justify-between">

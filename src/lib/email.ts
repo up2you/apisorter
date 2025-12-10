@@ -55,5 +55,52 @@ export async function sendPasswordResetEmail(email: string, token: string) {
   });
 }
 
+export async function sendClaimStatusNotification(email: string, providerName: string, status: 'APPROVED' | 'REJECTED') {
+  if (!resend) {
+    console.warn('[email] RESEND_API_KEY not configured. Skipping claim status email.');
+    return;
+  }
+
+  const subject = status === 'APPROVED'
+    ? `Claim Approved: ${providerName}`
+    : `Update on your Claim for ${providerName}`;
+
+  const message = status === 'APPROVED'
+    ? `<p>Great news! Your claim for <strong>${providerName}</strong> has been approved.</p>
+       <p>You now have management access to this provider on API Sorter. You can view your status in your profile.</p>`
+    : `<p>We reviewed your claim for <strong>${providerName}</strong> and unfortunately could not verify it at this time.</p>
+       <p>Please double check that you are using a work email address associated with the provider domain.</p>`;
+
+  await resend.emails.send({
+    from: FROM_ADDRESS,
+    to: email,
+    subject: subject,
+    html: `
+      <p>Hello,</p>
+      ${message}
+      <p>— API Sorter Team</p>
+    `,
+  });
+}
+
+export async function sendAdminClaimAlert(providerName: string, claimEmail: string, providerId: string) {
+  if (!resend) return;
+
+  const adminUrl = `${getBaseUrl()}/admin/claims`;
+
+  await resend.emails.send({
+    from: FROM_ADDRESS,
+    to: process.env.ADMIN_EMAIL || 'admin@apisorter.com',
+    subject: `[Admin] New Claim Request: ${providerName}`,
+    html: `
+        <h2>New Claim Request</h2>
+        <p><strong>Provider:</strong> ${providerName}</p>
+        <p><strong>Claimant:</strong> ${claimEmail}</p>
+        <p>Please review this request in the admin panel.</p>
+        <p><a href="${adminUrl}" style="padding: 10px 15px; background: #000; color: #fff; text-decoration: none; border-radius: 4px;">Review Claims</a></p>
+      `
+  });
+}
+
 
 
