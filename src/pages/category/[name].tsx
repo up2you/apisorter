@@ -43,6 +43,31 @@ export default function CategoryPage({
     <>
       <Head>
         <title>{title} — API Sorter</title>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "CollectionPage",
+              "name": title,
+              "description": `Browse curated ${category === 'all' ? '' : category} APIs with real-time link verification, pricing history, and community feedback.`,
+              "url": `https://apisorter.com/category/${encodeURIComponent(category)}`,
+              "breadcrumb": {
+                "@type": "BreadcrumbList",
+                "itemListElement": [{
+                  "@type": "ListItem",
+                  "position": 1,
+                  "name": "Home",
+                  "item": "https://apisorter.com"
+                }, {
+                  "@type": "ListItem",
+                  "position": 2,
+                  "name": title
+                }]
+              }
+            })
+          }}
+        />
       </Head>
       <SiteHeader />
       <main className="mx-auto max-w-7xl px-6">

@@ -123,7 +123,11 @@ export default function AdminProviders({ providers, sort, order, pagination }: P
                             item.website ? <a href={item.website} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline truncate max-w-xs block">{item.website}</a> : '-'
                         )
                     },
-                    { header: 'Contact', accessorKey: 'contact' },
+                    {
+                        header: 'Contact',
+                        accessorKey: 'contact',
+                        cell: (item) => item.contact || <span className="text-gray-600">-</span>
+                    },
                     { header: 'Created At', cell: (item) => new Date(item.createdAt).toLocaleDateString() },
                 ]}
             />

@@ -92,6 +92,49 @@ export default function ApiDetailPage({ api, related, initialReviews, initialAve
     setCount(payload.count ?? 0);
   }, [api.slug, api.source]);
 
+  // Construct JSON-LD
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://apisorter.com';
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": api.name,
+    "description": api.description || `Discover ${api.name} API on API Sorter.`,
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Web",
+    "url": `${siteUrl}/api/${api.slug}`,
+    "offers": {
+      "@type": "Offer",
+      "price": api.freeTier ? "0" : "0", // Defaulting to 0/Free logic for simple schema, or enhance logic
+      "priceCurrency": "USD",
+      "category": api.freeTier ? "Free" : "Paid"
+    },
+    "aggregateRating": count > 0 ? {
+      "@type": "AggregateRating",
+      "ratingValue": average,
+      "reviewCount": count
+    } : undefined
+  };
+
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [{
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": siteUrl
+    }, {
+      "@type": "ListItem",
+      "position": 2,
+      "name": api.category,
+      "item": `${siteUrl}/category/${encodeURIComponent(api.category)}`
+    }, {
+      "@type": "ListItem",
+      "position": 3,
+      "name": api.name
+    }]
+  };
+
   return (
     <>
       <Head>
@@ -99,6 +142,14 @@ export default function ApiDetailPage({ api, related, initialReviews, initialAve
         <meta
           name="description"
           content={`Discover ${api.name} API details, pricing tiers, documentation links, and community reviews.`}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
         />
       </Head>
       <SiteHeader />
