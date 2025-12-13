@@ -64,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // Remove duplicates and blanks
-        emails = [...new Set(emails)].filter(e => e && e.includes('@'));
+        emails = Array.from(new Set(emails)).filter(e => e && e.includes('@'));
 
         if (emails.length === 0) {
             return res.status(400).json({ message: 'No recipients found for this group' });
