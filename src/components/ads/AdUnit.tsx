@@ -20,7 +20,7 @@ export default function AdUnit({ slotKey, className = '' }: AdUnitProps) {
 
     useEffect(() => {
         // Fetch ad for this slot
-        fetch(`/api/ads/render?slotKey=${slotKey}`)
+        fetch(`/api/ads/serve?slotKey=${slotKey}`)
             .then(res => {
                 if (res.ok) return res.json();
                 return null;

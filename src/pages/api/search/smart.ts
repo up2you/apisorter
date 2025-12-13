@@ -44,6 +44,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
+        if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+            console.error('Missing GOOGLE_GENERATIVE_AI_API_KEY');
+            return res.status(500).json({ message: 'Server configuration error: Missing AI Key' });
+        }
+
         // Step 1: Query Expansion (Google Gemini)
         const expansionPrompt = `
       You are an expert search assistant.
@@ -60,22 +65,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     `;
 
-        const result = await model.generateContent({
-            contents: [{ role: 'user', parts: [{ text: expansionPrompt }] }],
-            generationConfig: { responseMimeType: "application/json" }
-        });
+        let expandedQuery = query;
+        let reasonPrefix = "Recommended for you:";
 
-        const aiResponse = JSON.parse(result.response.text() || '{}');
-        const expandedQuery = `${query} ${aiResponse.keywords || ''}`;
-        const reasonPrefix = aiResponse.reasonPrefix || "Recommended for you:";
+        try {
+            const result = await model.generateContent({
+                contents: [{ role: 'user', parts: [{ text: expansionPrompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+            });
+
+            const aiResponse = JSON.parse(result.response.text() || '{}');
+            expandedQuery = `${query} ${aiResponse.keywords || ''}`;
+            reasonPrefix = aiResponse.reasonPrefix || "Recommended for you:";
+        } catch (aiError) {
+            console.error('Gemini Expansion Failed:', aiError);
+            // Fallback: Proceed with original query if AI fails
+        }
 
         console.log(`Original Query: ${query}`);
         console.log(`Expanded Query: ${expandedQuery}`);
 
         // Step 2: Generate Embedding for the Expanded Query (Local)
-        const extractor = await getExtractor();
-        const output = await extractor(expandedQuery, { pooling: 'mean', normalize: true });
-        const queryEmbedding = Array.from(output.data) as number[];
+        let queryEmbedding: number[];
+        try {
+            const extractor = await getExtractor();
+            const output = await extractor(expandedQuery, { pooling: 'mean', normalize: true });
+            queryEmbedding = Array.from(output.data) as number[];
+        } catch (embedError) {
+            console.error('Embedding Generation Failed:', embedError);
+            return res.status(500).json({ message: 'Failed to generate search embeddings', error: String(embedError) });
+        }
 
         // Step 3: Vector Search (Fetch all and compute similarity)
         const allApis = await prisma.api.findMany({
@@ -98,8 +117,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             },
         });
 
+        if (allApis.length === 0) {
+            return res.status(200).json({ results: [] });
+        }
+
         const scoredApis = allApis.map(api => {
-            const similarity = cosineSimilarity(queryEmbedding, api.descriptionEmbedding as number[]);
+            if (!api.descriptionEmbedding || !Array.isArray(api.descriptionEmbedding)) {
+                return { ...api, similarity: 0 };
+            }
+            // Ensure type safety for the embedding
+            const apiEmbedding = api.descriptionEmbedding as unknown as number[];
+
+            // Check if dimensions match (simple check)
+            if (apiEmbedding.length !== queryEmbedding.length) {
+                return { ...api, similarity: 0 };
+            }
+
+            const similarity = cosineSimilarity(queryEmbedding, apiEmbedding);
             return { ...api, similarity };
         });
 
@@ -126,6 +160,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     } catch (error) {
         console.error('Hybrid search error:', error);
-        return res.status(500).json({ message: 'Failed to process search' });
+        return res.status(500).json({ message: 'Failed to process search', error: String(error) });
     }
 }

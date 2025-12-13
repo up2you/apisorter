@@ -1,0 +1,183 @@
+import Link from 'next/link';
+import ApiCard from '@/components/ApiCard';
+import SmartSearch from '@/components/home/SmartSearch';
+import AdUnit from '@/components/ads/AdUnit';
+import SiteFooter from '@/components/layout/SiteFooter';
+import SiteHeader from '@/components/layout/SiteHeader';
+import { getCategoryIcon } from '@/lib/categoryIcons';
+import { CatalogApi } from '@/types/catalog';
+
+interface HomeLandingProps {
+    featured: CatalogApi[];
+    categories: { category: string; count: number }[];
+    spotlightReviews: any[];
+}
+
+export default function HomeLanding({ featured, categories, spotlightReviews }: HomeLandingProps) {
+    const displayFeatured = featured.slice(0, 6);
+
+    return (
+        <>
+            <SiteHeader />
+            <main className="relative">
+                {/* Hero Section */}
+                <section className="container-max relative mt-8 overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-indigo-900/40 via-midnight to-surface p-8 shadow-2xl md:p-16">
+                    <div className="absolute right-0 top-0 -z-10 h-[500px] w-[500px] rounded-full bg-accent/20 blur-[100px] opacity-50" />
+                    <div className="absolute bottom-0 left-0 -z-10 h-[400px] w-[400px] rounded-full bg-highlight/10 blur-[80px] opacity-40" />
+
+                    <div className="absolute top-4 right-4 hidden lg:block w-[300px]">
+                        <AdUnit slotKey="home-hero-ad" />
+                    </div>
+
+                    <div className="relative z-10 flex flex-col items-center text-center">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 mb-8">
+                            <span className="relative flex h-2 w-2">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                                <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+                            </span>
+                            <span className="text-xs font-semibold text-accent">API CENTER 2.0</span>
+                        </div>
+
+                        <h1 className="text-4xl font-extrabold leading-tight text-main md:text-[2.75rem] mb-6">
+                            Discover, compare & monitor the world's favorite APIs
+                        </h1>
+
+                        <div className="w-full mb-12">
+                            <SmartSearch />
+                        </div>
+
+                        <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-400">
+                            <div className="flex items-center gap-2">
+                                <span className="text-accent">★</span>
+                                <span>Anonymous reviews</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-accent">⏱</span>
+                                <span>Auto verification</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-accent">🔔</span>
+                                <span>Change alerts</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Featured APIs Section */}
+                <section className="container-max mt-16">
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h2 className="text-2xl font-bold text-main">Featured APIs</h2>
+                            <p className="text-sm text-gray-400">Top picks from the community</p>
+                        </div>
+                        <Link href="/category/all" className="text-sm font-semibold text-accent hover:text-accent-light">
+                            View all APIs →
+                        </Link>
+                    </div>
+
+                    <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                        {displayFeatured.map((api) => (
+                            <ApiCard
+                                key={api.id}
+                                slug={api.slug}
+                                name={api.name}
+                                category={api.category}
+                                tags={api.tags}
+                                providerName={api.provider?.name}
+                                providerLogo={api.provider?.logoUrl}
+                                apiLogo={api.logoUrl}
+                                description={api.description}
+                                freeTier={api.freeTier}
+                                rating={api.metrics.averageRating}
+                                reviewCount={api.metrics.reviewCount}
+                            />
+                        ))}
+                    </div>
+                </section>
+
+                {/* Categories Grid */}
+                <section className="container-max mt-16">
+                    <h2 className="text-2xl font-bold text-main mb-8">Browse by Category</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {categories.slice(0, 8).map((category) => (
+                            <Link
+                                key={category.category}
+                                href={`/category/${encodeURIComponent(category.category)}`}
+                                className="card p-4 hover:border-accent/50 transition-colors group flex items-center gap-3"
+                            >
+                                <div className="h-10 w-10 rounded-lg bg-white/5 p-2 group-hover:bg-accent/10 transition-colors">
+                                    <img src={getCategoryIcon(category.category)} alt="" className="h-full w-full object-contain" />
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-main text-sm group-hover:text-accent truncate">{category.category}</h3>
+                                    <p className="text-xs text-gray-400 mt-1">{category.count} APIs</p>
+                                </div>
+                            </Link>
+                        ))}
+                        <Link
+                            href="/category/all"
+                            className="card p-4 hover:border-accent/50 transition-colors flex items-center justify-center text-accent font-medium"
+                        >
+                            View All Categories →
+                        </Link>
+                    </div>
+                </section>
+
+                {/* Community Spotlight */}
+                <section className="container-max mt-16">
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h2 className="text-2xl font-bold text-main">Community Spotlight</h2>
+                            <p className="text-sm text-gray-400">Recent reviews from developers</p>
+                        </div>
+                        <Link href="/community" className="text-sm font-semibold text-accent hover:text-accent-light">
+                            Read more reviews →
+                        </Link>
+                    </div>
+
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {spotlightReviews.slice(0, 3).map((review) => (
+                            <article
+                                key={review.id}
+                                className="card flex h-full flex-col justify-between p-6 transition-all duration-300 hover:border-accent/30"
+                            >
+                                <div>
+                                    <Link
+                                        href={`/api/${review.api.slug}`}
+                                        className="inline-block text-sm font-semibold text-accent hover:text-accent-light"
+                                    >
+                                        {review.api.name}
+                                    </Link>
+                                    <p className="mt-3 text-sm text-gray-400 line-clamp-3">
+                                        "{review.comment ?? 'No comment provided'}"
+                                    </p>
+                                </div>
+                                <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-4 text-xs text-gray-400">
+                                    <span className="font-medium">{review.nickname}</span>
+                                    <span className="flex items-center gap-1">
+                                        <span className="text-highlight">⭐</span>
+                                        <span className="font-semibold text-white">{review.rating}</span>
+                                        <span>/5</span>
+                                    </span>
+                                </div>
+                            </article>
+                        ))}
+                    </div>
+                </section>
+
+                {/* Bottom CTA */}
+                <section className="container-max mt-20 mb-12">
+                    <div className="card relative overflow-hidden p-8 text-center md:p-12">
+                        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-accent/10 via-transparent to-highlight/10" />
+                        <h2 className="text-2xl font-bold text-main md:text-3xl">Ready to explore the ecosystem?</h2>
+                        <p className="mt-3 text-base text-gray-400">Join thousands of developers discovering and monitoring APIs.</p>
+                        <div className="mt-6 flex justify-center">
+                            <Link href="/category/all" className="btn btn-primary">Start Exploring</Link>
+                        </div>
+                    </div>
+                </section>
+                <SiteFooter />
+            </main>
+        </>
+    );
+}

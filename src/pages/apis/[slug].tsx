@@ -1,19 +1,20 @@
-import { ApiStatus } from '@prisma/client';
+import { useState, useEffect, useCallback } from 'react';
 import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
-import { useCallback, useState, useEffect } from 'react';
 import { format } from 'date-fns';
-
-import AddReviewForm from '@/components/AddReviewForm.client';
+import { ApiStatus } from '@prisma/client';
+import prisma from '@/lib/prisma';
+import ClaimButton from '@/components/provider/ClaimButton';
+import { ApiPlayground } from '@/components/playground/ApiPlayground';
+import SiteHeader from '@/components/layout/SiteHeader';
+import SiteFooter from '@/components/layout/SiteFooter';
 import ApiCard from '@/components/ApiCard';
 import RatingStars from '@/components/RatingStars.client';
 import ReviewList from '@/components/ReviewList.client';
-import SiteFooter from '@/components/layout/SiteFooter';
-import SiteHeader from '@/components/layout/SiteHeader';
+import AddReviewForm from '@/components/AddReviewForm.client';
 import { getDatasetDetail, getDatasetRelated } from '@/lib/catalogData';
-import prisma from '@/lib/prisma';
-import ClaimButton from '@/components/provider/ClaimButton';
+
 
 type ApiDetailProps = {
   api: {
@@ -268,6 +269,11 @@ export default function ApiDetailPage({ api, related, initialReviews, initialAve
               </dl>
             </div>
           </aside>
+        </section>
+
+        {/* API Playground Section */}
+        <section className="mt-8">
+          <ApiPlayground initialUrl={api.docsUrl} />
         </section>
 
         <section className="mt-14 grid gap-10 lg:grid-cols-[1.7fr_1.3fr]">

@@ -1,154 +1,156 @@
 import 'dotenv/config';
-import prisma from '@/lib/prisma';
-import { NewsFetcher } from '@/lib/discovery/newsFetcher';
-import { AIAnalyzer } from '@/lib/discovery/aiAnalyzer';
+import prisma from '../src/lib/prisma';
+import { NewsFetcher, NewsItem } from '../src/lib/discovery/newsFetcher';
+import { GitHubFetcher } from '../src/lib/discovery/githubFetcher';
+import { AIAnalyzer } from '../src/lib/discovery/aiAnalyzer';
+import { CrawlerEngine } from '../src/lib/crawler/crawlerEngine';
 
 async function main() {
-    console.log('Starting AI Discovery...');
+    console.log('Starting AI Discovery Engine (Deep Enrichment Mode)...');
 
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) {
-        console.error('GOOGLE_GENERATIVE_AI_API_KEY not found in environment variables.');
-        process.exit(1);
+        throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not found.');
     }
 
-    const fetcher = new NewsFetcher();
+    const newsFetcher = new NewsFetcher();
+    const githubFetcher = new GitHubFetcher();
     const analyzer = new AIAnalyzer(apiKey);
+    const crawler = new CrawlerEngine();
 
-    // 1. Get enabled sources
-    const sources = await prisma.discoverySource.findMany({
-        where: { enabled: true },
-    });
+    // Initialize Crawler (Headless Browser)
+    await crawler.init();
 
-    if (sources.length === 0) {
-        console.log('No enabled discovery sources found. Adding default sources...');
-        // Add some defaults if none exist
-        await prisma.discoverySource.createMany({
-            data: [
-                { name: 'TechCrunch', url: 'https://techcrunch.com/feed/', type: 'RSS' },
-                { name: 'Hacker News', url: 'https://hnrss.org/newest', type: 'RSS' },
-                { name: 'Product Hunt', url: 'https://www.producthunt.com/feed', type: 'RSS' },
-            ],
-            skipDuplicates: true,
-        });
-        // Re-fetch
-        sources.push(...await prisma.discoverySource.findMany({ where: { enabled: true } }));
-    }
+    try {
+        // 1. Fetch Candidates from RSS
+        const sources = await prisma.discoverySource.findMany({ where: { enabled: true } });
+        let candidates: { link: string; title: string; sourceId: string }[] = [];
 
-    console.log(`Found ${sources.length} sources.`);
+        console.log(`📡 Polling ${sources.length} RSS feeds...`);
+        for (const source of sources) {
+            const items = await newsFetcher.fetchFeed(source.url, source.name);
+            candidates.push(...items.map((i: NewsItem) => ({ link: i.link, title: i.title, sourceId: source.id })));
+        }
 
-    for (const source of sources) {
-        console.log(`Fetching from ${source.name}...`);
-        const items = await fetcher.fetchFeed(source.url, source.name);
-        console.log(`Found ${items.length} items.`);
-
-        for (const item of items) {
-            // Check if already processed
-            const existingLog = await prisma.discoveryLog.findUnique({
-                where: {
-                    sourceId_url: {
-                        sourceId: source.id,
-                        url: item.link,
-                    },
-                },
+        // 2. Fetch Candidates from GitHub
+        console.log(`🐙 Polling GitHub Trending...`);
+        const githubItems = await githubFetcher.fetchTrending(7);
+        // We'll use a placeholder Source ID for GitHub, or create one if missing
+        let githubSource = await prisma.discoverySource.findUnique({ where: { url: 'https://github.com/trending' } });
+        if (!githubSource) {
+            githubSource = await prisma.discoverySource.create({
+                data: { name: 'GitHub Trending', url: 'https://github.com/trending', type: 'HTML' }
             });
+        }
+        candidates.push(...githubItems.map((i: NewsItem) => ({ link: i.link, title: i.title, sourceId: githubSource!.id })));
 
-            if (existingLog) {
+        // Deduplicate candidates based on URL (and sourceId)
+        const uniqueCandidates = new Map();
+        candidates.forEach(c => {
+            const key = `${c.sourceId}-${c.link}`;
+            if (!uniqueCandidates.has(key)) {
+                uniqueCandidates.set(key, c);
+            }
+        });
+        candidates = Array.from(uniqueCandidates.values());
+
+        console.log(`🔍 Total Candidates: ${candidates.length}`);
+
+        // 3. Process Candidates
+        for (const candidate of candidates) {
+            // Deduplication Check
+            const existingLog = await prisma.discoveryLog.findUnique({
+                where: { sourceId_url: { sourceId: candidate.sourceId, url: candidate.link } }
+            });
+            if (existingLog) continue;
+
+            console.log(`\n----------------------------------------------------------------`);
+            console.log(`Processing: ${candidate.title}`);
+            console.log(`LINK: ${candidate.link}`);
+
+            // A. Deep Crawl (Visit the site to get real content)
+            console.log(`🕷️ Deep Crawling homepage...`);
+            const crawlResult = await crawler.crawl(candidate.link);
+
+            if (crawlResult.error || !crawlResult.content) {
+                console.log(`❌ Crawl Failed: ${crawlResult.error}`);
+                await logDiscovery(candidate, 'ERROR', `Crawl failed: ${crawlResult.error}`);
                 continue;
             }
 
-            console.log(`Analyzing: ${item.title}`);
-
-            // Analyze with AI
-            const analysis = await analyzer.analyze(item.content, item.title);
+            // B. AI Analysis
+            console.log(`🧠 Analyzing content with Gemini...`);
+            // We pass the CRAWLED content, not the RSS snippet
+            const analysis = await analyzer.analyze(crawlResult.content, candidate.title);
 
             if (analysis) {
-                console.log(`>>> FOUND API: ${analysis.name} (${analysis.confidence})`);
+                console.log(`✅ FOUND API: ${analysis.name} (${(analysis.confidence * 100).toFixed(0)}%)`);
+                console.log(`   Category: ${analysis.category}`);
+                console.log(`   Pricing: ${analysis.pricing}`);
 
-                // Create Log
-                const log = await prisma.discoveryLog.create({
+                // C. Save to Database
+                // 1. Create Provider
+                const provider = await prisma.provider.create({
                     data: {
-                        sourceId: source.id,
-                        url: item.link,
-                        title: item.title,
-                        status: 'PROCESSED',
-                    },
-                });
-
-                // Check if API already exists (by name or slug)
-                // Simple check by name for now
-                const slug = analysis.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-                const existingApi = await prisma.api.findFirst({
-                    where: {
-                        OR: [
-                            { name: { equals: analysis.name, mode: 'insensitive' } },
-                            { slug: slug },
-                        ]
+                        name: analysis.name,
+                        website: analysis.url || candidate.link,
                     }
                 });
 
-                if (existingApi) {
-                    console.log(`API ${analysis.name} already exists. Skipping creation.`);
-                } else {
-                    // Create Provider and API
-                    // We need a provider. For now, create a placeholder provider or try to guess.
-                    // Let's create a new provider with the same name as the API for simplicity, 
-                    // or "Unknown Provider" if we want to be safe. 
-                    // But usually the API name is a good proxy for the provider name initially.
+                // 2. Create API
+                const slug = analysis.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-4);
 
-                    const provider = await prisma.provider.create({
-                        data: {
-                            name: analysis.name,
-                            website: analysis.url,
+                const newApi = await prisma.api.create({
+                    data: {
+                        name: analysis.name,
+                        slug: slug,
+                        description: analysis.description, // Short description
+                        category: analysis.category,
+                        docsUrl: analysis.url || candidate.link,
+                        providerId: provider.id,
+                        status: 'PENDING', // Require human review or auto-approve if high confidence? Let's stick to PENDING.
+                        source: 'CRAWLED',
+                        sourceUrl: candidate.link,
+                        freeTier: analysis.pricing.toLowerCase().includes('free') ? 'Available' : null,
+                        pricingUrl: null,
+                        metadata: {
+                            detailedDescription: analysis.detailedDescription,
+                            features: analysis.features || [],
+                            pricingModel: analysis.pricing,
+                            socials: analysis.socials,
+                            aiConfidence: analysis.confidence
                         }
-                    });
+                    }
+                });
 
-                    await prisma.api.create({
-                        data: {
-                            name: analysis.name,
-                            slug: slug + '-' + Date.now().toString().slice(-4), // Ensure uniqueness
-                            description: analysis.description,
-                            category: analysis.category || 'Uncategorized',
-                            docsUrl: analysis.url || item.link, // Fallback to news link if no URL found
-                            providerId: provider.id,
-                            status: 'PENDING',
-                            source: 'CRAWLED',
-                            sourceUrl: item.link,
-                        }
-                    });
-
-                    // Update log with foundApiId
-                    // (Skipping for brevity, but good to have)
-                }
+                console.log(`💾 Saved API: ${newApi.name} (ID: ${newApi.id})`);
+                await logDiscovery(candidate, 'PROCESSED', undefined, newApi.id);
 
             } else {
-                // Log as ignored
-                await prisma.discoveryLog.create({
-                    data: {
-                        sourceId: source.id,
-                        url: item.link,
-                        title: item.title,
-                        status: 'IGNORED',
-                    },
-                });
+                console.log(`⚪ Irrelevant content (Not an API/Tool).`);
+                await logDiscovery(candidate, 'IGNORED');
             }
         }
 
-        // Update source lastChecked
-        await prisma.discoverySource.update({
-            where: { id: source.id },
-            data: { lastCheckedAt: new Date() },
-        });
+    } catch (error) {
+        console.error('Critical Error:', error);
+    } finally {
+        await crawler.close();
+        await prisma.$disconnect();
     }
-
-    console.log('Discovery complete.');
 }
 
-main()
-    .catch((e) => {
-        console.error(e);
-        process.exit(1);
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
+async function logDiscovery(candidate: any, status: 'PROCESSED' | 'IGNORED' | 'ERROR', errorMsg?: string, apiId?: string) {
+    await prisma.discoveryLog.create({
+        data: {
+            sourceId: candidate.sourceId,
+            url: candidate.link,
+            title: candidate.title,
+            status: status,
+            errorMessage: errorMsg,
+            foundApiId: apiId
+        }
     });
+}
+
+main();

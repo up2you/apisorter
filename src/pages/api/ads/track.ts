@@ -3,13 +3,13 @@ import prisma from '@/lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
-        return res.status(405).json({ message: 'Method not allowed' });
+        return res.status(405).end();
     }
 
     const { campaignId, type } = req.body; // type: 'impression' | 'click'
 
     if (!campaignId || !['impression', 'click'].includes(type)) {
-        return res.status(400).json({ message: 'Invalid parameters' });
+        return res.status(400).json({ error: 'Invalid request' });
     }
 
     try {
@@ -24,10 +24,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 data: { clicks: { increment: 1 } }
             });
         }
-
         res.status(200).json({ success: true });
     } catch (error) {
-        console.error('Ad Tracking Error:', error);
-        res.status(500).json({ message: 'Tracking failed' });
+        // Fail silently for tracking to not impact UX
+        console.error('Ad Tracking Failed', error);
+        res.status(400).end();
     }
 }

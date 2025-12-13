@@ -25,7 +25,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     return (
         <div className="flex min-h-screen bg-midnight text-gray-100 font-sans">
             <AdminNav />
-            <main className="flex-1 p-8 overflow-y-auto">
+            <main className="flex-1 p-8 overflow-y-auto ml-64">
                 {children}
             </main>
         </div>

@@ -3,6 +3,7 @@ import { GetServerSideProps } from 'next';
 import Head from 'next/head';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import prisma from '@/lib/prisma';
+import Link from 'next/link';
 import { Search, Mail, Shield, User as UserIcon, Calendar, MoreVertical } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -72,8 +73,8 @@ export default function AdminUsers({ users: initialUsers }: AdminUsersProps) {
                             {filteredUsers.map((user) => (
                                 <tr key={user.id} className="hover:bg-white/5 transition-colors">
                                     <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-full bg-white/10 overflow-hidden flex items-center justify-center">
+                                        <Link href={`/admin/users/${user.id}`} className="flex items-center gap-3 group">
+                                            <div className="h-10 w-10 rounded-full bg-white/10 overflow-hidden flex items-center justify-center group-hover:ring-2 ring-primary transition-all">
                                                 {user.image ? (
                                                     // eslint-disable-next-line @next/next/no-img-element
                                                     <img src={user.image} alt="" className="h-full w-full object-cover" />
@@ -82,18 +83,18 @@ export default function AdminUsers({ users: initialUsers }: AdminUsersProps) {
                                                 )}
                                             </div>
                                             <div>
-                                                <div className="font-medium text-white">{user.name || 'No Name'}</div>
+                                                <div className="font-medium text-white group-hover:text-primary transition-colors">{user.name || 'No Name'}</div>
                                                 <div className="text-gray-500 text-xs flex items-center gap-1">
                                                     <Mail size={10} />
                                                     {user.email}
                                                 </div>
                                             </div>
-                                        </div>
+                                        </Link>
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${user.role === 'ADMIN'
-                                                ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
-                                                : 'bg-gray-500/10 text-gray-400 border-gray-500/20'
+                                            ? 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                                            : 'bg-gray-500/10 text-gray-400 border-gray-500/20'
                                             }`}>
                                             <Shield size={12} />
                                             {user.role}
@@ -115,9 +116,12 @@ export default function AdminUsers({ users: initialUsers }: AdminUsersProps) {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <button className="text-gray-500 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/10">
+                                        <Link
+                                            href={`/admin/users/${user.id}`}
+                                            className="text-gray-500 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/10 inline-block"
+                                        >
                                             <MoreVertical size={16} />
-                                        </button>
+                                        </Link>
                                     </td>
                                 </tr>
                             ))}
