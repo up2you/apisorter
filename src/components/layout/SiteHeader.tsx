@@ -11,22 +11,26 @@ const navItems = [
   { href: '/category/Maps%20%26%20Geolocation', label: 'Maps' },
 ];
 
+import { Menu, X, Search, User as UserIcon } from 'lucide-react';
+
 export default function SiteHeader() {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { data: session, status } = useSession();
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!query.trim()) return;
     router.push(`/category/all?q=${encodeURIComponent(query.trim())}`);
+    setIsMobileMenuOpen(false); // Close mobile menu on search
   };
 
   return (
     <header className="sticky top-0 z-40 backdrop-blur-xl bg-midnight/80 border-b border-white/5">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <Link href="/" className="flex items-center space-x-3">
+        <Link href="/" className="flex items-center space-x-3 z-50">
           <img
             src="/images/logo.png"
             alt="API Sorter Logo"
@@ -38,6 +42,7 @@ export default function SiteHeader() {
           </div>
         </Link>
 
+        {/* Desktop Navigation */}
         <nav className="hidden items-center space-x-6 text-sm font-medium text-gray-300 md:flex">
           {navItems.map((item) => (
             <Link
@@ -50,8 +55,7 @@ export default function SiteHeader() {
           ))}
         </nav>
 
-
-
+        {/* Desktop Actions */}
         <div className="hidden items-center space-x-2 md:flex">
           <DonationButton />
           <form onSubmit={handleSubmit} className="relative">
@@ -60,8 +64,9 @@ export default function SiteHeader() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search APIs"
-              className="w-56 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white placeholder:text-gray-400 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="w-56 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white placeholder:text-gray-400 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40 pl-10"
             />
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
             <span className="pointer-events-none absolute right-3 top-2 text-sm text-gray-500">⌘K</span>
           </form>
           {status === 'authenticated' && session?.user ? (
@@ -144,8 +149,114 @@ export default function SiteHeader() {
             </>
           )}
         </div>
+
+        {/* Mobile Toggle Button */}
+        <button
+          className="relative z-50 p-2 text-gray-300 md:hidden"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+
+        {/* Mobile Navigation Overlay */}
+        {isMobileMenuOpen && (
+          <div className="fixed inset-0 top-0 z-40 flex flex-col bg-midnight pt-24 px-6 md:hidden overflow-y-auto">
+            <form onSubmit={handleSubmit} className="relative mb-8">
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search APIs..."
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-base text-white placeholder:text-gray-400 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/40 pl-11"
+              />
+              <Search className="absolute left-3 top-3.5 h-5 w-5 text-gray-500" />
+            </form>
+
+            <nav className="flex flex-col space-y-4">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-lg font-medium text-gray-200 hover:text-accent border-b border-white/5 pb-4"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+
+            <div className="mt-8 space-y-4">
+              {status === 'authenticated' && session?.user ? (
+                <>
+                  <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                    <div className="h-10 w-10 overflow-hidden rounded-full bg-accent/20">
+                      {(session.user as any).image ? (
+                        <img src={(session.user as any).image} alt="User" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-lg font-bold text-accent">
+                          {session.user.name?.[0] ?? 'U'}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">{session.user.name}</p>
+                      <p className="text-sm text-gray-400">{session.user.email}</p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/profile"
+                    className="flex items-center gap-3 text-gray-200 py-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <UserIcon size={20} />
+                    Profile Settings
+                  </Link>
+                  {session.user.role === 'ADMIN' && (
+                    <Link
+                      href="/admin"
+                      className="flex items-center gap-3 text-accent py-2"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <span>⚡</span>
+                      Admin Dashboard
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                    className="block w-full py-2 text-left text-red-400"
+                  >
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <div className="flex flex-col gap-4">
+                  <Link
+                    href="/auth/signin"
+                    className="btn btn-ghost w-full justify-center border border-white/10"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    href="/auth/signup"
+                    className="btn btn-primary w-full justify-center"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Create account
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-8 border-t border-white/5 pt-8 pb-12">
+              <div className="flex justify-center">
+                <DonationButton />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </header >
+    </header>
   );
 }
 
